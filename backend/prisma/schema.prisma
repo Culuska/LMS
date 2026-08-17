@@ -49,14 +49,32 @@ model User {
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
 
-  roles           UserRole[]
-  studentRecord   Student?
-  lecturerRecord  Lecturer?
-  auditLogEntries AuditLog[]      @relation("AuditActor")
-  consentRecords  ConsentRecord[]
-  notifications   Notification[]
+  roles               UserRole[]
+  studentRecord       Student?
+  lecturerRecord      Lecturer?
+  auditLogEntries     AuditLog[]           @relation("AuditActor")
+  consentRecords      ConsentRecord[]
+  notifications       Notification[]
+  passwordResetTokens PasswordResetToken[]
 
   @@map("users")
+}
+
+/// A reset token is single-use and short-lived. Only tokenHash is stored (SHA-256 of the
+/// raw token) — the raw token exists only in the outgoing email and the reset request URL,
+/// never at rest, the same principle as password hashing. See docs/00 §12.
+model PasswordResetToken {
+  id        String    @id @default(uuid())
+  userId    String
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@map("password_reset_tokens")
 }
 
 /// Role assignment, optionally scoped to a Faculty or Department (e.g. "Department Admin

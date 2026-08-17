@@ -16,6 +16,7 @@ export interface AuthenticatedUser {
   firstName: string;
   lastName: string;
   roles: RoleName[];
+  mustChangePassword: boolean;
 }
 
 @Injectable()
@@ -55,6 +56,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       firstName: user.firstName,
       lastName: user.lastName,
       roles: user.roles.map((r) => r.role),
+      mustChangePassword: user.mustChangePassword,
     };
   }
 }

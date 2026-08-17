@@ -69,22 +69,34 @@ not just "compiles"):
     so both paths share one implementation instead of two that could drift) — with `AuditLog`
     entries throughout.
 
-  All of the above verified live against a running server + real database via three scripts
-  totaling 26 checks: `smoke-test.sh` (registration rules), `smoke-test-grading.sh` (the full
+- **Role assignment** (`POST/GET/DELETE /users/:userId/roles`, `SUPER_ADMIN` only) — grants
+  or revokes a role on an existing account. Closes the gap every earlier smoke test had to
+  work around with direct SQL.
+- **Password reset & change** — `forgot-password`/`reset-password` (public, single-use
+  SHA-256-hashed tokens, 1-hour expiry, identical response whether or not the email exists
+  so it can't be used to enumerate accounts) and an authenticated `change-password` that
+  clears `mustChangePassword` — the flow the temporary-password-at-account-creation stopgap
+  needed to actually be resolvable by the account holder, not just documented as needed.
+- **Email abstraction** (`src/email/`) — an `EmailService` every password/account flow now
+  goes through, with a console-log stub implementation. Swapping in a real provider (SES/
+  Postmark/etc.) is a one-line change (`useClass` in `EmailModule`); nothing that calls it
+  needs to change. Still not real delivery — flagged in the module itself.
+
+  All of the above verified live against a running server + real database via four scripts
+  totaling 38 checks: `smoke-test.sh` (registration rules), `smoke-test-grading.sh` (the full
   grading pipeline), `smoke-test-grade-change.sh` (request → approve/deny, the lecturer-
-  ownership check, and the Super-Admin-cannot-approve restriction specifically).
+  ownership check, and the Super-Admin-cannot-approve restriction specifically),
+  `smoke-test-auth.sh` (password reset/change, role assignment, no-account-enumeration).
 
 ## What is NOT implemented yet (do not assume otherwise)
 
-- **Role assignment endpoint.** There's no admin API to grant a user an additional role
-  after creation — the grade-change smoke test had to do this via direct SQL to get a
-  distinct Exam Officer account, which is flagged in the script itself, not hidden. Same
-  gap noted in the earlier grading-pipeline test.
-- **Email delivery.** `POST /users/students` and `/users/lecturers` return a one-time
-  temporary password directly in the API response because no email provider is wired up
-  yet (docs/00 §20 — provider not chosen).
+- **Real email delivery.** The `EmailService` abstraction exists and everything routes
+  through it, but the only implementation logs to the console — no real users can receive
+  a password reset or their temporary password until a provider is wired in.
 - **Prerequisite cycle detection.** Only direct self-reference/duplicate is blocked; a
   longer chain (A requires B requires A) is not detected.
+- **Rate limiting.** Login and password-reset endpoints have no throttling — flagged Medium
+  in docs/00 §12, not yet implemented (no `@nestjs/throttler` wired up).
 - **Assignments/quizzes as LMS content** (student-facing submission UI, file uploads),
   announcements, notifications, reports, admissions workflow, transcript generation.
   `Submission`/`Resource`/`Application` exist in the schema; no service/controller layer.
@@ -103,8 +115,9 @@ npx prisma db seed       # seeds grade bands + an initial Super Admin account
 npm run start:dev
 ```
 
-The seed script prints the Super Admin's temporary login — it forces a password change
-on first use (`mustChangePassword: true`, not yet enforced by an endpoint — flagged).
+The seed script prints the Super Admin's temporary login. `mustChangePassword: true` is
+returned in the login/`/auth/me` response for the frontend to act on; use
+`POST /auth/change-password` to clear it.
 
 ### Useful scripts
 
@@ -118,8 +131,9 @@ on first use (`mustChangePassword: true`, not yet enforced by an endpoint — fl
 | `./smoke-test.sh` | Live scenario test of the registration business rules |
 | `./smoke-test-grading.sh` | Live scenario test of the full grading pipeline |
 | `./smoke-test-grade-change.sh` | Live scenario test of the grade-change request workflow |
+| `SERVER_LOG=<path> ./smoke-test-auth.sh` | Live scenario test of password reset/change and role assignment — needs the running server's stdout log path to read the console-stub "email" |
 
-All three smoke-test scripts assume a freshly seeded database (they create their own
+All smoke-test scripts assume a freshly seeded database (they create their own
 faculty/course/student data with fixed codes, so re-running without resetting the DB
 will hit conflicts on the second run).
 
@@ -138,5 +152,5 @@ Each directory under `src/` is a Nest module matching a domain boundary from
 `assessment` (assessment items/marks/course results/grade-change requests/academic
 standing — the grading pipeline), `grading` (pure calculation functions, DB-independent
 and reused by whichever module needs them), `audit` (the one shared sensitive-action log),
-`prisma` (the one shared database connection), `common` (guards/decorators/offering-
-ownership checks shared across modules).
+`email` (the one shared, swappable email abstraction), `prisma` (the one shared database
+connection), `common` (guards/decorators/offering-ownership checks shared across modules).

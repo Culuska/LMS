@@ -13,6 +13,7 @@ import { EnrollmentModule } from './enrollment/enrollment.module';
 import { AttendanceModule } from './attendance/attendance.module';
 import { AssessmentModule } from './assessment/assessment.module';
 import { AuditModule } from './audit/audit.module';
+import { EmailModule } from './email/email.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { RolesGuard } from './common/guards/roles.guard';
 
@@ -21,6 +22,7 @@ import { RolesGuard } from './common/guards/roles.guard';
     ConfigModule.forRoot({ isGlobal: true }),
     PrismaModule,
     AuditModule,
+    EmailModule,
     AuthModule,
     UsersModule,
     AcademicStructureModule,
