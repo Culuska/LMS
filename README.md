@@ -6,12 +6,14 @@ A combined Student Information System and Learning Management System for a unive
 
 Requirements, architecture, and academic/grading policy are settled (see Documents
 below). The backend now has a working end-to-end academic core: auth/RBAC, academic
-structure, course registration with its data-integrity rules, attendance, and the full
+structure, course registration with its data-integrity rules, attendance, the full
 grading pipeline (marks → compute → submit → approve → publish → academic record → GPA
-→ academic standing) — with role separation and an anti-self-approval check enforcing
-that a lecturer can never publish their own results. A thin frontend vertical slice
-(login → dashboard) exists and is verified working. See `backend/README.md` and
-`frontend/README.md` for exactly what's built vs. not yet.
+→ academic standing), and grade-change requests for corrections after publication —
+with role separation, an anti-self-approval check, and (for grade changes specifically)
+a deliberate exclusion of even Super Admin from approval authority, matching the audit's
+RBAC table exactly rather than a generic admin-override shortcut. A thin frontend
+vertical slice (login → dashboard) exists and is verified working. See `backend/README.md`
+and `frontend/README.md` for exactly what's built vs. not yet.
 
 ## Documents
 
@@ -38,7 +40,7 @@ container, on every push/PR touching `backend/`.
 
 Per the development sequence in `docs/01-agent-responsibility-matrix.md`
 (Requirements → Architecture → Database → API → UI/UX → Development → Testing →
-Security → Deployment): grade-change requests, role-assignment admin tooling, LMS
-content delivery (assignments/quizzes with student-facing submission, file uploads),
+Security → Deployment): role-assignment admin tooling, LMS content delivery
+(assignments/quizzes with student-facing submission, file uploads),
 announcements/notifications, transcripts, and the admissions workflow are next — see
 `backend/README.md`'s "not implemented yet" list for the full picture.

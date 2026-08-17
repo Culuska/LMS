@@ -54,21 +54,32 @@ not just "compiles"):
      standing (`PROBATION`/`DISMISSED`/recovery to `ACTIVE`) per docs/04 §7 — with an
      `AuditLog` entry for both the publication and any standing change.
 
-  All of the above verified live against a running server + real database via
-  `smoke-test.sh` (registration rules) and `smoke-test-grading.sh` (the full grading
-  pipeline, including a genuinely separate approver account and a spoofing attempt on
-  self-service registration) — 17 checks total, not just unit-level assertions.
+- **Grade-change requests** (`src/assessment/grade-change-requests.service.ts`) — the only
+  path allowed to alter a result once it's past DRAFT, per docs/00 §5's RBAC table:
+  - **Request**: `REGISTRAR`/`DEAN`/`HEAD_OF_DEPARTMENT` (broad academic oversight, no
+    ownership check) or `LECTURER` (must be the offering's own assigned lecturer — checked,
+    not assumed). Blocked entirely while the result is still DRAFT (edit it directly instead).
+  - **Approve/deny**: `EXAM_OFFICER` only. This is the one RBAC row in the whole system that
+    deliberately excludes even `SUPER_ADMIN` — and the code has no admin-override bypass for
+    it, matching the table exactly rather than defaulting to the override pattern used
+    everywhere else.
+  - **Approval effects**: corrects the `CourseResult`; if the result was already `PUBLISHED`,
+    also finds and corrects the matching `AcademicRecordEntry` and reruns the same GPA/
+    academic-standing recomputation used at publish time (`AcademicStandingService`, extracted
+    so both paths share one implementation instead of two that could drift) — with `AuditLog`
+    entries throughout.
+
+  All of the above verified live against a running server + real database via three scripts
+  totaling 26 checks: `smoke-test.sh` (registration rules), `smoke-test-grading.sh` (the full
+  grading pipeline), `smoke-test-grade-change.sh` (request → approve/deny, the lecturer-
+  ownership check, and the Super-Admin-cannot-approve restriction specifically).
 
 ## What is NOT implemented yet (do not assume otherwise)
 
-- **Grade-change requests.** `GradeChangeRequest` exists in the schema and is referenced
-  in the audit (a published result can't be silently overwritten), but the workflow to
-  create/approve one isn't built. Right now a published `CourseResult` simply can't be
-  edited via the API at all — safe, but not yet a complete answer to "what if a mistake
-  needs correcting after publication."
 - **Role assignment endpoint.** There's no admin API to grant a user an additional role
-  after creation — `smoke-test-grading.sh` had to do this via direct SQL to get a second
-  approver account, which is flagged in the script itself, not hidden.
+  after creation — the grade-change smoke test had to do this via direct SQL to get a
+  distinct Exam Officer account, which is flagged in the script itself, not hidden. Same
+  gap noted in the earlier grading-pipeline test.
 - **Email delivery.** `POST /users/students` and `/users/lecturers` return a one-time
   temporary password directly in the API response because no email provider is wired up
   yet (docs/00 §20 — provider not chosen).
@@ -106,10 +117,11 @@ on first use (`mustChangePassword: true`, not yet enforced by an endpoint — fl
 | `npx prisma studio` | Browse the database visually |
 | `./smoke-test.sh` | Live scenario test of the registration business rules |
 | `./smoke-test-grading.sh` | Live scenario test of the full grading pipeline |
+| `./smoke-test-grade-change.sh` | Live scenario test of the grade-change request workflow |
 
-Both smoke-test scripts assume a freshly seeded database (they create their own faculty/
-course/student data with fixed codes, so re-running without resetting the DB will hit
-conflicts on the second run).
+All three smoke-test scripts assume a freshly seeded database (they create their own
+faculty/course/student data with fixed codes, so re-running without resetting the DB
+will hit conflicts on the second run).
 
 ### Environment variables
 
@@ -123,7 +135,8 @@ Each directory under `src/` is a Nest module matching a domain boundary from
 `auth`, `users`, `academic-structure` (faculties/departments/programs),
 `academic-calendar` (years/semesters), `courses` (courses/prerequisites/curriculum/offerings),
 `enrollment` (enrollments/course registrations), `attendance` (sessions/records),
-`assessment` (assessment items/marks/course results — the grading pipeline), `grading`
-(pure calculation functions, DB-independent and reused by whichever module needs them),
-`audit` (the one shared sensitive-action log), `prisma` (the one shared database
-connection), `common` (guards/decorators/offering-ownership checks shared across modules).
+`assessment` (assessment items/marks/course results/grade-change requests/academic
+standing — the grading pipeline), `grading` (pure calculation functions, DB-independent
+and reused by whichever module needs them), `audit` (the one shared sensitive-action log),
+`prisma` (the one shared database connection), `common` (guards/decorators/offering-
+ownership checks shared across modules).
