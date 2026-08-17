@@ -66,6 +66,13 @@ These will be asked through the chat interface as a short set of multiple-choice
 
 *(Filled in as answers arrive — this becomes the permanent record so later development phases don't contradict earlier decisions.)*
 
-| Date | Question # | Decision | Recorded by |
+| Date | Question | Decision | Recorded by |
 |---|---|---|---|
-| — | — | *(none yet — awaiting your answers)* | — |
+| 2026-08-17 | B: Expected scale | **Medium — full university** (~2,000–15,000 students across all faculties from V1) | Lecturer |
+| 2026-08-17 | B: Mobile strategy | **Responsive web only for V1** — no native app, no PWA for now | Lecturer |
+| 2026-08-17 | B: Hosting | **Cloud-managed** (e.g. AWS/Azure/GCP-style managed hosting, not on-premise) | Lecturer |
+| 2026-08-17 | B: Data protection framework | **A specific national law applies** — country not yet specified; *pending* — see question below | Lecturer |
+
+### Still pending
+- **Which country's data-protection law applies?** (needed to finalize retention/erasure rules in `00-requirements-audit.md` §13)
+- All of §A (academic policy — grading, GPA, credits, semesters, progression, retakes, graduation, attendance, org structure, advising, admissions)

@@ -1,7 +1,7 @@
 # Initial System Architecture Proposal
-**University Management System + LMS — v0.1 (proposed, pending decisions in `03-open-questions-and-decisions.md`)**
+**University Management System + LMS — v0.2 (scale/hosting/mobile confirmed; database/grading details pending §A in `03-open-questions-and-decisions.md`)**
 
-This is a starting architecture sized for the "medium" scale assumption in `00-requirements-audit.md` §18. It will be revised once you've answered the scale, hosting, and mobile-strategy questions — those choices change specific technology picks, not the overall shape.
+**Confirmed (2026-08-17):** medium scale (~2,000–15,000 students, full university from V1), cloud-managed hosting, responsive web only for V1 (no native app). This proposal reflects those decisions. Data-protection jurisdiction is still pending (country not yet specified) — retention/erasure specifics in `00-requirements-audit.md` §13 will be finalized once that's answered.
 
 ## Shape of the system
 
@@ -38,11 +38,10 @@ This is a starting architecture sized for the "medium" scale assumption in `00-r
 - Every endpoint enforces authorization server-side based on the RBAC model in `00-requirements-audit.md` §5 — role checks live in one shared policy layer, not scattered per-endpoint, so a rule change (e.g. "Exam Officers can now also do X") is a one-place edit.
 - Input validation on every write endpoint (defense against injection and malformed data alike).
 
-## Hosting & deployment (pending your hosting-preference decision)
+## Hosting & deployment (confirmed: cloud-managed)
 
-- **Cloud-managed (recommended default):** a managed Postgres instance, containerized app deployment (e.g. on a platform like Render/Fly/AWS ECS), managed object storage (S3), managed email delivery (e.g. SES/Postmark/SendGrid). Lower operational burden — no one on a small university IT team needs to patch database servers at 2am.
-- **On-premise alternative:** same architecture, self-hosted Postgres + MinIO + containers on university-owned servers, if institutional policy requires data to stay on campus. Higher operational overhead; needs a committed IT admin.
-- Either way: separate **development**, **staging**, and **production** environments, with production changes only going out through the staging environment first.
+- A managed Postgres instance, containerized app deployment (e.g. on a platform like Render/Fly/AWS ECS), managed object storage (S3), managed email delivery (e.g. SES/Postmark/SendGrid). Lower operational burden — no one on a small university IT team needs to patch database servers at 2am.
+- Separate **development**, **staging**, and **production** environments, with production changes only going out through the staging environment first.
 
 ## Backups & recovery
 
