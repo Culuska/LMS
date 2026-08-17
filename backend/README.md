@@ -82,24 +82,48 @@ not just "compiles"):
   Postmark/etc.) is a one-line change (`useClass` in `EmailModule`); nothing that calls it
   needs to change. Still not real delivery — flagged in the module itself.
 
-  All of the above verified live against a running server + real database via four scripts
-  totaling 38 checks: `smoke-test.sh` (registration rules), `smoke-test-grading.sh` (the full
+- **Course content** (`src/lms/course-content.service.ts`) — nested text/markdown
+  materials (modules → lessons) per offering; the offering's own lecturer (or admin) can
+  create/delete, deletion is blocked while nested items still exist (no orphaning/silent
+  cascade). File attachments are explicitly NOT covered — see gaps below.
+- **Announcements** (`src/lms/announcements.service.ts`) — course-scoped (offering's own
+  lecturer or admin) or university-wide (`REGISTRAR`/`SUPER_ADMIN` only). Course-scoped
+  announcements notify every currently-registered student directly; university-wide ones
+  deliberately do NOT fan out to every account in the system (no subscription/targeting
+  model exists for that yet) — visible via the list endpoint instead, a scope decision.
+- **Notifications** (`src/notifications/`) — in-app only (no email/SMS/push — see docs/00
+  §12, V2+). Dispatched on: course-scoped announcement created, result published, grade
+  change approved (to the student) or denied (to the requester). List-mine and mark-read
+  endpoints; ownership enforced (can't mark someone else's notification read).
+
+  All of the above verified live against a running server + real database via five scripts
+  totaling 47 checks: `smoke-test.sh` (registration rules), `smoke-test-grading.sh` (the full
   grading pipeline), `smoke-test-grade-change.sh` (request → approve/deny, the lecturer-
   ownership check, and the Super-Admin-cannot-approve restriction specifically),
-  `smoke-test-auth.sh` (password reset/change, role assignment, no-account-enumeration).
+  `smoke-test-auth.sh` (password reset/change, role assignment, no-account-enumeration),
+  `smoke-test-lms.sh` (course content nesting/deletion rules, announcement→notification
+  dispatch, cross-user notification access blocked).
 
 ## What is NOT implemented yet (do not assume otherwise)
 
 - **Real email delivery.** The `EmailService` abstraction exists and everything routes
   through it, but the only implementation logs to the console — no real users can receive
   a password reset or their temporary password until a provider is wired in.
+- **File uploads / object storage.** `Resource` exists in the schema (polymorphic file
+  metadata) but there's no upload endpoint and no storage backend decision made
+  (docs/00 §14) — course content is text/markdown only right now.
 - **Prerequisite cycle detection.** Only direct self-reference/duplicate is blocked; a
   longer chain (A requires B requires A) is not detected.
 - **Rate limiting.** Login and password-reset endpoints have no throttling — flagged Medium
   in docs/00 §12, not yet implemented (no `@nestjs/throttler` wired up).
-- **Assignments/quizzes as LMS content** (student-facing submission UI, file uploads),
-  announcements, notifications, reports, admissions workflow, transcript generation.
-  `Submission`/`Resource`/`Application` exist in the schema; no service/controller layer.
+- **View-scoping on read endpoints.** Most GET endpoints (course offerings, assessment
+  items, marks, etc.) are open to any authenticated user rather than scoped to "registered
+  students + relevant staff only," per the RBAC table's intent — a consistent simplification
+  across the codebase, not unique to any one module, flagged here rather than silently
+  assumed correct.
+- **Assignments/quizzes as LMS content** (student-facing submission workflow — `Submission`
+  exists in the schema, no service layer), reports, admissions workflow, transcript
+  generation.
 - **Frontend.** See `../frontend/` — a thin login-flow slice only; none of the above has
   a UI yet.
 

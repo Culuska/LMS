@@ -7,6 +7,7 @@ import {
 import { RoleName } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditLogService } from '../audit/audit-log.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { AcademicStandingService } from './academic-standing.service';
 import { resolveGradeBand } from '../grading';
 import { CreateGradeChangeRequestDto } from './dto/create-grade-change-request.dto';
@@ -26,6 +27,7 @@ export class GradeChangeRequestsService {
     private readonly prisma: PrismaService,
     private readonly auditLog: AuditLogService,
     private readonly academicStanding: AcademicStandingService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   async create(
@@ -189,6 +191,18 @@ export class GradeChangeRequestsService {
       );
     }
 
+    const student = await this.prisma.student.findUnique({
+      where: { id: request.courseResult.courseRegistration.studentId },
+      select: { userId: true },
+    });
+    if (student) {
+      await this.notifications.createForUser(
+        student.userId,
+        `Grade updated: ${request.courseResult.courseRegistration.courseOffering.course.code}`,
+        `Your grade for ${request.courseResult.courseRegistration.courseOffering.course.title} has been corrected to ${newBand.letter}.`,
+      );
+    }
+
     return {
       request: { ...request, status: 'APPROVED' as const },
       newLetterGrade: newBand.letter,
@@ -215,6 +229,14 @@ export class GradeChangeRequestsService {
       targetType: 'GradeChangeRequest',
       targetId: requestId,
     });
+
+    // Denial notifies whoever requested the change (lecturer/registrar/dean), not the
+    // student — nothing changed for the student, so they have nothing to be told.
+    await this.notifications.createForUser(
+      request.requestedById,
+      `Grade change request denied: ${request.courseResult.courseRegistration.courseOffering.course.code}`,
+      `Your grade change request (reason: "${request.reason}") was denied.`,
+    );
 
     return updated;
   }

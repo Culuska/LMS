@@ -8,6 +8,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { OfferingAccessService } from '../common/offering-access.service';
 import { AttendanceService } from '../attendance/attendance.service';
 import { AuditLogService } from '../audit/audit-log.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { AcademicStandingService } from './academic-standing.service';
 import {
   applyRetakeCap,
@@ -32,6 +33,7 @@ export class CourseResultsService {
     private readonly attendanceService: AttendanceService,
     private readonly auditLog: AuditLogService,
     private readonly academicStanding: AcademicStandingService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   async compute(registrationId: string, user: AuthenticatedUser) {
@@ -241,6 +243,18 @@ export class CourseResultsService {
       semesterName,
       user,
     );
+
+    const student = await this.prisma.student.findUnique({
+      where: { id: registration.studentId },
+      select: { userId: true },
+    });
+    if (student) {
+      await this.notifications.createForUser(
+        student.userId,
+        `Result published: ${offering.course.code}`,
+        `Your result for ${offering.course.title} (${offering.course.code}) has been published: ${result.letterGrade}.`,
+      );
+    }
 
     return { result: published, gpa: gpaOutcome };
   }
