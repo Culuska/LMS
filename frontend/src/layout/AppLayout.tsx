@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link, Outlet } from 'react-router-dom';
+import { Link, Navigate, Outlet } from 'react-router-dom';
 import { useAuth } from '../auth/useAuth';
 import { api } from '../api/client';
 import type { Notification } from '../types/domain';
@@ -26,6 +26,10 @@ export function AppLayout() {
   }, []);
 
   if (!user) return null;
+  // Force the change-password screen before anything else — a temporary password
+  // shouldn't be usable to browse the rest of the app. /change-password itself lives
+  // outside this layout (see App.tsx) so this redirect can't loop.
+  if (user.mustChangePassword) return <Navigate to="/change-password" replace />;
 
   const isStudent = user.roles.includes('STUDENT');
   const isLecturer = user.roles.includes('LECTURER');

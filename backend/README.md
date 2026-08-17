@@ -116,6 +116,16 @@ not just "compiles"):
   student themself. **No `ADVISOR`, no `LECTURER`** — both can see other student data
   elsewhere in this system, but the audit's table excludes them specifically from official
   transcripts, and that's matched here rather than generalized from the broader pattern.
+- **Rate limiting** (`@nestjs/throttler`, `src/app.module.ts`) — a generous global
+  default (100 req/min/IP) plus tighter per-route limits on the endpoints docs/00 §12
+  actually flags: `POST /auth/login` (30/min), `POST /auth/forgot-password` (5/min),
+  `POST /auth/reset-password` (10/min). Login's limit is looser than a typical
+  brute-force-hardening guide would suggest — tight enough to meaningfully slow an
+  attacker (a >95% cut versus unlimited), loose enough that this project's own
+  smoke-test suite (which legitimately logs in ~20+ times per full regression run, all
+  from one dev-machine IP) doesn't trip it. Verified live: 35 rapid wrong-password
+  attempts from one IP return `401` for the first 30 and `429` for the rest — see
+  `auth.controller.ts` for the exact per-route values and the trade-off note.
 
   All of the above verified live against a running server + real database via seven scripts
   totaling 68 checks: `smoke-test.sh` (registration rules), `smoke-test-grading.sh` (the full
@@ -139,8 +149,6 @@ not just "compiles"):
   (docs/00 §14) — course content is text/markdown only right now.
 - **Prerequisite cycle detection.** Only direct self-reference/duplicate is blocked; a
   longer chain (A requires B requires A) is not detected.
-- **Rate limiting.** Login and password-reset endpoints have no throttling — flagged Medium
-  in docs/00 §12, not yet implemented (no `@nestjs/throttler` wired up).
 - **View-scoping on read endpoints.** Most GET endpoints (course offerings, assessment
   items, marks, etc.) are open to any authenticated user rather than scoped to "registered
   students + relevant staff only," per the RBAC table's intent — a consistent simplification
@@ -151,9 +159,9 @@ not just "compiles"):
 - **Transcript PDF rendering.** The endpoint returns structured JSON, not a printable
   document — no PDF library is wired in yet.
 - **Frontend.** See `../frontend/` — real screens now cover student/lecturer/admin flows
-  including the full grading pipeline, but curriculum-version management, structural
-  record edit/delete, and a forced password-change prompt still have no UI (see that
-  README's gap list for the current cut).
+  including the full grading pipeline and the forced-password-change prompt, but
+  curriculum-version management and structural record edit/delete still have no UI (see
+  that README's gap list for the current cut).
 
 ## Local development
 

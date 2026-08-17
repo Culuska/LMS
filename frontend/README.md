@@ -18,6 +18,11 @@ React + TypeScript + Vite. Real screens wired to the backend for the three main 
   role-aware nav (only shows links a role can actually use), a notification-count badge,
   sign-out.
 - `src/pages/Login.tsx` — working login form.
+- `src/pages/ChangePassword.tsx` — reachable two ways: forced (`AppLayout` redirects
+  here whenever `user.mustChangePassword` is true, and the guard re-applies on every
+  navigation, so there's no way to route around it while still on a temporary password)
+  or voluntary. Lives outside `AppLayout`'s route group specifically so the redirect
+  can't loop.
 - `src/pages/Dashboard.tsx` — role-aware hub: link cards for whatever the signed-in
   user's roles unlock, mirroring `AppLayout`'s nav.
 - `src/pages/Notifications.tsx` — list-mine + mark-read, shared by every role.
@@ -46,7 +51,12 @@ backend + freshly seeded database: login as super admin/lecturer/student, naviga
 page above, create academic-structure records through the admin console, and run the
 **full grading pipeline through the UI** — enter marks as the lecturer, compute, submit,
 then approve and publish as an admin, then confirm the student's transcript reflects the
-published grade. 21 UI-level checks + a 9-check pipeline walkthrough, all passing.
+published grade (21 UI-level checks + a 9-check pipeline walkthrough). Separately, the
+forced-password-change flow itself: temp-password login redirects to `/change-password`,
+direct navigation to any other route bounces back, wrong-current-password and
+mismatched-confirmation are both rejected client-and-server-side, and a successful
+change unlocks the app immediately without a fresh login (8 checks). 38 live UI checks
+total, all passing.
 
 ## Local development
 
@@ -61,10 +71,6 @@ nothing to log in with otherwise.
 
 ## Not implemented yet
 
-- **No forced password-change screen.** The backend returns `mustChangePassword: true`
-  and `POST /auth/change-password` exists, but nothing in the frontend acts on that flag
-  yet — a user with a temporary password can use the app indefinitely without being
-  prompted to change it. Real gap, not a hidden assumption.
 - **Edit/delete for structural records.** Academic Structure is list+create only;
   changing an already-referenced faculty/course/offering safely needs its own
   cascade-review design, not a quick add-on.

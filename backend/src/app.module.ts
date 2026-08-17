@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { PrismaModule } from './prisma/prisma.module';
@@ -24,6 +25,12 @@ import { RolesGuard } from './common/guards/roles.guard';
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
+    // A generous global default (docs/00-requirements-audit.md §12 flags login/
+    // password-reset as needing throttling specifically — those endpoints override this
+    // with a tighter limit via @Throttle(), see auth.controller.ts). The global default
+    // exists so every other route also has *some* floor against abuse, without being
+    // tight enough to interfere with normal bulk admin use or the smoke-test scripts.
+    ThrottlerModule.forRoot([{ name: 'default', ttl: 60_000, limit: 100 }]),
     PrismaModule,
     AuditModule,
     EmailModule,
@@ -48,6 +55,10 @@ import { RolesGuard } from './common/guards/roles.guard';
     { provide: APP_GUARD, useClass: JwtAuthGuard },
     // Then, if the route is @Roles(...)-annotated, the caller must hold one of them.
     { provide: APP_GUARD, useClass: RolesGuard },
+    // Rate limiting, applied last (guard order = declaration order) so it counts
+    // requests regardless of auth outcome — including failed logins, which is the
+    // whole point of throttling this endpoint.
+    { provide: APP_GUARD, useClass: ThrottlerGuard },
   ],
 })
 export class AppModule {}

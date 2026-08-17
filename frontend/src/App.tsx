@@ -3,6 +3,7 @@ import { AuthProvider } from './auth/AuthContext';
 import { ProtectedRoute } from './auth/ProtectedRoute';
 import { AppLayout } from './layout/AppLayout';
 import { Login } from './pages/Login';
+import { ChangePassword } from './pages/ChangePassword';
 import { Dashboard } from './pages/Dashboard';
 import { Notifications } from './pages/Notifications';
 import { MyCourses } from './pages/student/MyCourses';
@@ -19,6 +20,16 @@ function App() {
     <AuthProvider>
       <Routes>
         <Route path="/login" element={<Login />} />
+        {/* Outside AppLayout deliberately — AppLayout redirects here whenever
+            mustChangePassword is true, so this route can't itself be behind that guard. */}
+        <Route
+          path="/change-password"
+          element={
+            <ProtectedRoute>
+              <ChangePassword />
+            </ProtectedRoute>
+          }
+        />
         <Route
           element={
             <ProtectedRoute>

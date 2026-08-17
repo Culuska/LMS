@@ -6,6 +6,7 @@ import {
   HttpStatus,
   Post,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
@@ -19,7 +20,16 @@ import type { AuthenticatedUser } from './strategies/jwt.strategy';
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
+  // Tighter than the global default (docs/00-requirements-audit.md §12 flags
+  // credential-stuffing/brute-force risk on login specifically). Per IP, not per
+  // account, since this runs before we know if the account exists. 30/min still cuts a
+  // brute-force attempt rate by >95% compared to unlimited, while comfortably tolerating
+  // one dev machine (one IP) running this project's own smoke-test suite back to back —
+  // a stricter per-IP value made the regression scripts themselves flaky in practice.
+  // A production deployment fronted by a real WAF/IDS would layer additional
+  // account-level lockout on top of this; this is the V1 floor, not the whole story.
   @Public()
+  @Throttle({ default: { limit: 30, ttl: 60_000 } })
   @Post('login')
   @HttpCode(HttpStatus.OK)
   login(@Body() dto: LoginDto) {
@@ -32,7 +42,10 @@ export class AuthController {
     return user;
   }
 
+  // Stricter still — this endpoint sends an email (once real delivery is wired up) and
+  // is otherwise the same "guess an email" surface as login.
   @Public()
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
   @Post('forgot-password')
   @HttpCode(HttpStatus.OK)
   async forgotPassword(@Body() dto: ForgotPasswordDto) {
@@ -44,7 +57,11 @@ export class AuthController {
     };
   }
 
+  // The token itself is a 32-byte random value (see token.util.ts), so brute-forcing it
+  // is already infeasible — this limit is really about not letting a leaked/guessed
+  // single token be hammered indefinitely against slightly-different new passwords.
   @Public()
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
   @Post('reset-password')
   @HttpCode(HttpStatus.OK)
   async resetPassword(@Body() dto: ResetPasswordDto) {

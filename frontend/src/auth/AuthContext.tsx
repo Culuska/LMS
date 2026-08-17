@@ -37,7 +37,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
   }, []);
 
-  const value = useMemo(() => ({ user, isLoading, login, logout }), [user, isLoading, login, logout]);
+  const clearMustChangePassword = useCallback(() => {
+    setUser((prev) => (prev ? { ...prev, mustChangePassword: false } : prev));
+  }, []);
+
+  const value = useMemo(
+    () => ({ user, isLoading, login, logout, clearMustChangePassword }),
+    [user, isLoading, login, logout, clearMustChangePassword],
+  );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
