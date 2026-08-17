@@ -73,12 +73,19 @@ These will be asked through the chat interface as a short set of multiple-choice
 | 2026-08-17 | B: Hosting | **Cloud-managed** (e.g. AWS/Azure/GCP-style managed hosting, not on-premise) | Lecturer |
 | 2026-08-17 | B: Data protection framework | **Somalia Data Protection Act No. 005 of 2023**, plus DPA regulations/guidance. Key requirements folded into `00-requirements-audit.md` §13: 72-hour breach notification, cross-border transfer safeguards, data-subject rights (access/rectification/erasure/portability/objection), "major importance" controller registration, children's (under-18) consent. | Lecturer |
 
-### New follow-ups from the Somalia DPA research (not yet resolved)
-- **Cross-border transfer safeguards:** the university needs a data-processing/transfer agreement with whichever cloud vendor is selected, before go-live. This is a procurement/legal task, not an engineering one — who at the university handles this (registrar's office, legal counsel, IT policy office)?
-- **"Data controller of major importance" registration:** does the university already have a Somalia DPA registration, or does this need to be initiated? (Independent of the software build, but affects go-live readiness.)
-- **Erasure-request handling for academic records:** confirm who has authority to approve/deny an erasure request that touches records under academic-retention obligations (Registrar? A designated data-protection contact?).
-- **Minors in admissions:** does your university admit any students under 18 (e.g. accelerated-entry programs)? If yes, the Admissions module needs guardian-consent capture.
-- **Data retention periods per category:** how long should academic records, rejected-applicant data, login/session logs, and attendance records be kept? (Transcripts are typically retained long-term/permanently for accreditation purposes — confirm if that matches your institution's practice.)
+### Governance decisions from the Somalia DPA follow-up (2026-08-17) — ownership and process now resolved
+
+The four items below have moved from "unowned open question" to "owned, with a defined process." The *decisions on process* are final and are now built into `00-requirements-audit.md` (§7 database model, §8 rules 11–13, §13 narrative). The *underlying university-side actions* are still pending completion — tracked here so they don't get lost before go-live:
+
+| Item | Decision (who / how) | Still needs to happen |
+|---|---|---|
+| Cross-border transfer safeguards | Procurement/Legal (or DPO if appointed) owns drafting/negotiating the data-processing agreement with the chosen cloud vendor; engineering supplies the data-flow description (what data, where, who accesses it, retention, security controls) | Vendor not yet selected; agreement not yet drafted |
+| "Major importance" controller registration | University registers the processing activity and transfer mechanism with the Somalia DPA once the vendor/architecture is settled | Not yet initiated |
+| Erasure requests touching academic records | Governance group decides: Registrar (records owner) + Legal/Compliance + DPO (if appointed). Rule of thumb: full erasure only where no retention obligation applies; otherwise partial redaction of non-essential fields, mandatory academic fields preserved (§8 rules 11–12) | Group not yet convened; no requests received yet (system not live) |
+| Minors in admissions | Admissions Office owns confirming underage status at intake and capturing guardian consent + proof; Legal/DPO reviews consent language (§8 rule 13, §13) | **Open question for you:** does your university admit any students under 18? |
+| Data retention periods per category | Records Management/Registrar drafts the retention schedule (by data category: applications, enrollment, grades/transcripts, disciplinary, logs); Legal/DPO approves; IT implements technical enforcement via `RetentionClass` (§7) | Schedule not yet drafted — needs Registrar input on what your institution/accreditor requires per category |
+
+**Note on "special category" data:** the guidance above referenced tighter rules for "special categories" of data. This wasn't independently confirmed in my earlier research (my search results described general processing principles and data-subject rights but didn't surface a documented special-category regime) — worth having your Legal/DPO contact confirm directly with the DPA guidance document before it's relied on for the consent/admissions workflow design.
 
 ### Still pending
 - All of §A (academic policy — grading, GPA, credits, semesters, progression, retakes, graduation, attendance, org structure, advising, admissions)
