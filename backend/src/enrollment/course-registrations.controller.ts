@@ -3,18 +3,27 @@ import { RoleName } from '@prisma/client';
 import { CourseRegistrationsService } from './course-registrations.service';
 import { CreateCourseRegistrationDto } from './dto/create-course-registration.dto';
 import { Roles } from '../common/decorators/roles.decorator';
+import { CurrentUser } from '../common/decorators/current-user.decorator';
+import type { AuthenticatedUser } from '../auth/strategies/jwt.strategy';
 
 @Controller('course-registrations')
 export class CourseRegistrationsController {
   constructor(private readonly service: CourseRegistrationsService) {}
 
-  // In V1, registration is entered by Registrar/Advisor staff on the student's behalf
-  // through this endpoint. A STUDENT self-service registration endpoint (constrained to
-  // dto.studentId === the caller's own student record) is a near-term follow-up, not
-  // yet implemented — flagged rather than silently left to look done.
-  @Roles(RoleName.SUPER_ADMIN, RoleName.REGISTRAR, RoleName.ADVISOR)
+  // Registrar/Advisor/Super Admin register on a student's behalf; STUDENT self-service
+  // is also allowed — the service resolves and enforces the caller's own studentId when
+  // the caller isn't staff, so a student can never register anyone but themself.
+  @Roles(
+    RoleName.SUPER_ADMIN,
+    RoleName.REGISTRAR,
+    RoleName.ADVISOR,
+    RoleName.STUDENT,
+  )
   @Post()
-  create(@Body() dto: CreateCourseRegistrationDto) {
-    return this.service.create(dto);
+  create(
+    @Body() dto: CreateCourseRegistrationDto,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.service.create(dto, user);
   }
 }

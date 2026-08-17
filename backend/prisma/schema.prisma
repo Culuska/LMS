@@ -663,10 +663,14 @@ model AcademicRecordEntry {
   @@map("academic_record_entries")
 }
 
+/// One snapshot row per grade-publish event: semesterGpa is that semester's GPA as of
+/// this point, cumulativeGpa is CGPA across all published courses as of this point.
+/// Deliberately append-only (a new row per event, never updated in place) so a
+/// student's GPA history over time is auditable, not just the current figure.
 model GpaRecord {
   id            String   @id @default(uuid())
   studentId     String
-  semesterId    String? // null = cumulative (CGPA) snapshot
+  semesterId    String?
   semesterGpa   Decimal? @db.Decimal(3, 2)
   cumulativeGpa Decimal  @db.Decimal(3, 2)
   computedAt    DateTime @default(now())

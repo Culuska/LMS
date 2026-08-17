@@ -10,6 +10,9 @@ import { AcademicStructureModule } from './academic-structure/academic-structure
 import { AcademicCalendarModule } from './academic-calendar/academic-calendar.module';
 import { CoursesModule } from './courses/courses.module';
 import { EnrollmentModule } from './enrollment/enrollment.module';
+import { AttendanceModule } from './attendance/attendance.module';
+import { AssessmentModule } from './assessment/assessment.module';
+import { AuditModule } from './audit/audit.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { RolesGuard } from './common/guards/roles.guard';
 
@@ -17,12 +20,15 @@ import { RolesGuard } from './common/guards/roles.guard';
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     PrismaModule,
+    AuditModule,
     AuthModule,
     UsersModule,
     AcademicStructureModule,
     AcademicCalendarModule,
     CoursesModule,
     EnrollmentModule,
+    AttendanceModule,
+    AssessmentModule,
   ],
   controllers: [AppController],
   providers: [

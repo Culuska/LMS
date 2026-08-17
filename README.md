@@ -5,10 +5,13 @@ A combined Student Information System and Learning Management System for a unive
 ## Status: In development
 
 Requirements, architecture, and academic/grading policy are settled (see Documents
-below). Development has started: a working backend (auth, RBAC, academic structure,
-course registration with its data-integrity rules, a tested grading engine) and a thin
-frontend vertical slice (login → dashboard) both exist and are verified working —
-see `backend/README.md` and `frontend/README.md` for exactly what's built vs. not yet.
+below). The backend now has a working end-to-end academic core: auth/RBAC, academic
+structure, course registration with its data-integrity rules, attendance, and the full
+grading pipeline (marks → compute → submit → approve → publish → academic record → GPA
+→ academic standing) — with role separation and an anti-self-approval check enforcing
+that a lecturer can never publish their own results. A thin frontend vertical slice
+(login → dashboard) exists and is verified working. See `backend/README.md` and
+`frontend/README.md` for exactly what's built vs. not yet.
 
 ## Documents
 
@@ -35,6 +38,7 @@ container, on every push/PR touching `backend/`.
 
 Per the development sequence in `docs/01-agent-responsibility-matrix.md`
 (Requirements → Architecture → Database → API → UI/UX → Development → Testing →
-Security → Deployment), the grading pipeline (Mark → CourseResult → approval →
-publication → transcript) and the LMS/attendance/notifications modules are the next
-pieces — see `backend/README.md`'s "not implemented yet" list for the full picture.
+Security → Deployment): grade-change requests, role-assignment admin tooling, LMS
+content delivery (assignments/quizzes with student-facing submission, file uploads),
+announcements/notifications, transcripts, and the admissions workflow are next — see
+`backend/README.md`'s "not implemented yet" list for the full picture.

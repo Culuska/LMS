@@ -1,12 +1,21 @@
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { RoleName } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateCourseRegistrationDto } from './dto/create-course-registration.dto';
 import { COURSE_LOAD, RETAKE_POLICY } from '../grading';
+import type { AuthenticatedUser } from '../auth/strategies/jwt.strategy';
+
+const STAFF_ROLES: RoleName[] = [
+  RoleName.SUPER_ADMIN,
+  RoleName.REGISTRAR,
+  RoleName.ADVISOR,
+];
 
 /**
  * All the business rules a course registration must satisfy before it's created —
@@ -18,16 +27,17 @@ import { COURSE_LOAD, RETAKE_POLICY } from '../grading';
 export class CourseRegistrationsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(dto: CreateCourseRegistrationDto) {
+  async create(dto: CreateCourseRegistrationDto, user: AuthenticatedUser) {
+    const studentId = await this.resolveTargetStudentId(dto.studentId, user);
+
     const [student, offering] = await Promise.all([
-      this.prisma.student.findUnique({ where: { id: dto.studentId } }),
+      this.prisma.student.findUnique({ where: { id: studentId } }),
       this.prisma.courseOffering.findUnique({
         where: { id: dto.courseOfferingId },
         include: { course: true, semester: true },
       }),
     ]);
-    if (!student)
-      throw new NotFoundException(`Student ${dto.studentId} not found`);
+    if (!student) throw new NotFoundException(`Student ${studentId} not found`);
     if (!offering)
       throw new NotFoundException(
         `Course offering ${dto.courseOfferingId} not found`,
@@ -35,15 +45,15 @@ export class CourseRegistrationsService {
 
     this.assertRegistrationWindowOpen(offering.semester);
     await this.assertNotAlreadyRegisteredThisSemester(
-      dto.studentId,
+      studentId,
       offering.courseId,
       offering.semesterId,
     );
-    await this.assertCurriculumIncludesCourse(dto.studentId, offering.courseId);
-    await this.assertPrerequisitesMet(dto.studentId, offering.courseId);
+    await this.assertCurriculumIncludesCourse(studentId, offering.courseId);
+    await this.assertPrerequisitesMet(studentId, offering.courseId);
 
     const { isRetake, retakeAttemptNumber } = await this.resolveRetakeStatus(
-      dto.studentId,
+      studentId,
       offering.courseId,
     );
 
@@ -55,7 +65,7 @@ export class CourseRegistrationsService {
 
     return this.prisma.courseRegistration.create({
       data: {
-        studentId: dto.studentId,
+        studentId,
         courseOfferingId: dto.courseOfferingId,
         semesterId: offering.semesterId,
         isRetake,
@@ -65,6 +75,30 @@ export class CourseRegistrationsService {
           : undefined,
       },
     });
+  }
+
+  /**
+   * A STUDENT caller may only ever register themself — dto.studentId is ignored
+   * entirely for them and their own Student record is resolved from the JWT, so there's
+   * no way to spoof a different student's registration by passing a different ID in the
+   * body. Staff roles (Registrar/Advisor/Super Admin) use dto.studentId as given.
+   */
+  private async resolveTargetStudentId(
+    dtoStudentId: string,
+    user: AuthenticatedUser,
+  ): Promise<string> {
+    if (user.roles.some((r) => STAFF_ROLES.includes(r))) {
+      return dtoStudentId;
+    }
+    const ownRecord = await this.prisma.student.findUnique({
+      where: { userId: user.id },
+    });
+    if (!ownRecord) {
+      throw new ForbiddenException(
+        'No student record is associated with this account',
+      );
+    }
+    return ownRecord.id;
   }
 
   private assertRegistrationWindowOpen(semester: {
