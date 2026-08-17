@@ -104,16 +104,26 @@ not just "compiles"):
   status transition re-checks a `ConsentRecord` exists before letting a minor's application
   progress. Deliberately does NOT auto-create an `Enrollment` on acceptance — which
   `CurriculumVersion` applies is a Registrar decision, not something admissions should guess.
+- **Transcripts** (`src/academic-records/transcript.service.ts`) — `GET
+  /students/:studentId/transcript`: courses grouped by semester, credits attempted vs.
+  earned (only passing grades count toward earned), latest cumulative GPA. Access matches
+  docs/00 §5's RBAC table row exactly — deliberately narrower than most academic-data
+  endpoints: `SUPER_ADMIN`/`REGISTRAR`/`DEAN`/`HEAD_OF_DEPARTMENT`/`EXAM_OFFICER`, or the
+  student themself. **No `ADVISOR`, no `LECTURER`** — both can see other student data
+  elsewhere in this system, but the audit's table excludes them specifically from official
+  transcripts, and that's matched here rather than generalized from the broader pattern.
 
-  All of the above verified live against a running server + real database via six scripts
-  totaling 59 checks: `smoke-test.sh` (registration rules), `smoke-test-grading.sh` (the full
+  All of the above verified live against a running server + real database via seven scripts
+  totaling 68 checks: `smoke-test.sh` (registration rules), `smoke-test-grading.sh` (the full
   grading pipeline), `smoke-test-grade-change.sh` (request → approve/deny, the lecturer-
   ownership check, and the Super-Admin-cannot-approve restriction specifically),
   `smoke-test-auth.sh` (password reset/change, role assignment, no-account-enumeration),
   `smoke-test-admissions.sh` (minor-without-guardian-info rejected, full application→offer→
   accept→login flow, double-accept blocked),
   `smoke-test-lms.sh` (course content nesting/deletion rules, announcement→notification
-  dispatch, cross-user notification access blocked).
+  dispatch, cross-user notification access blocked),
+  `smoke-test-transcript.sh` (correct GPA/credits computation, staff access, cross-student
+  access blocked).
 
 ## What is NOT implemented yet (do not assume otherwise)
 
@@ -133,7 +143,9 @@ not just "compiles"):
   across the codebase, not unique to any one module, flagged here rather than silently
   assumed correct.
 - **Assignments/quizzes as LMS content** (student-facing submission workflow — `Submission`
-  exists in the schema, no service layer), reports, transcript generation.
+  exists in the schema, no service layer) and administrative reports beyond the transcript.
+- **Transcript PDF rendering.** The endpoint returns structured JSON, not a printable
+  document — no PDF library is wired in yet.
 - **Frontend.** See `../frontend/` — a thin login-flow slice only; none of the above has
   a UI yet.
 
@@ -168,6 +180,7 @@ returned in the login/`/auth/me` response for the frontend to act on; use
 | `SERVER_LOG=<path> ./smoke-test-auth.sh` | Live scenario test of password reset/change and role assignment — needs the running server's stdout log path to read the console-stub "email" |
 | `./smoke-test-lms.sh` | Live scenario test of course content, announcements, and notification dispatch |
 | `./smoke-test-admissions.sh` | Live scenario test of the admissions workflow, including the guardian-consent gate |
+| `./smoke-test-transcript.sh` | Live scenario test of the transcript endpoint and its access control |
 
 All smoke-test scripts assume a freshly seeded database (they create their own
 faculty/course/student data with fixed codes, so re-running without resetting the DB
@@ -187,7 +200,8 @@ Each directory under `src/` is a Nest module matching a domain boundary from
 `enrollment` (enrollments/course registrations), `attendance` (sessions/records),
 `assessment` (assessment items/marks/course results/grade-change requests/academic
 standing — the grading pipeline), `lms` (course content/announcements), `notifications`,
-`admissions` (applications), `grading` (pure calculation functions, DB-independent and
-reused by whichever module needs them), `audit` (the one shared sensitive-action log),
-`email` (the one shared, swappable email abstraction), `prisma` (the one shared database
-connection), `common` (guards/decorators/offering-ownership checks shared across modules).
+`admissions` (applications), `academic-records` (transcripts), `grading` (pure calculation
+functions, DB-independent and reused by whichever module needs them), `audit` (the one
+shared sensitive-action log), `email` (the one shared, swappable email abstraction),
+`prisma` (the one shared database connection), `common` (guards/decorators/offering-
+ownership checks shared across modules).

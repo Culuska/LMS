@@ -17,6 +17,7 @@ import { EmailModule } from './email/email.module';
 import { LmsModule } from './lms/lms.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { AdmissionsModule } from './admissions/admissions.module';
+import { AcademicRecordsModule } from './academic-records/academic-records.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { RolesGuard } from './common/guards/roles.guard';
 
@@ -37,6 +38,7 @@ import { RolesGuard } from './common/guards/roles.guard';
     AssessmentModule,
     LmsModule,
     AdmissionsModule,
+    AcademicRecordsModule,
   ],
   controllers: [AppController],
   providers: [
