@@ -32,7 +32,7 @@ The rest of this document works through the system area by area.
 | A3 | **Academic records/transcript office function** | Central, authoritative, versioned record of a student's full academic history, independent of any single course or department | Transcripts must be tamper-evident and outlive any course/lecturer being deleted or changed | Registrar, Student, external verifiers | Essential | V1 (issuance can be manual/PDF in V1, self-service portal in V2) |
 | A4 | **Prerequisites / co-requisites enforcement** | Course registration must check a student has passed/is taking the required prior course | Prevents invalid registrations (e.g. registering for a 300-level course without the 200-level prerequisite) | Student, Registrar, Advisor | Essential | V1 |
 | A5 | **Academic advising** | Record of an assigned advisor per student, advisor's view of advisee progress, advisor sign-off on registration (if your university requires it) | Common requirement; without it there's no one accountable for guiding a student's course selection | Academic Advisor, Student | Essential (module) — *ask if advisor sign-off is required at your university* | V1 basic, V2 richer |
-| A6 | **Academic probation / good-standing status tracking** | System tracks whether a student is in good standing, on probation, or subject to dismissal based on GPA/attendance rules | Needed to correctly gate registration, graduation, and reporting | Registrar, Advisor, Dean | Essential | V1 (rules TBD by you — see open questions) |
+| A6 | **Academic probation / good-standing status tracking** | System tracks whether a student is in good standing, on probation, or subject to dismissal based on GPA/attendance rules | Needed to correctly gate registration, graduation, and reporting | Registrar, Advisor, Dean | Essential | V1 (rules confirmed — see [`04-grading-and-academic-policy.md`](04-grading-and-academic-policy.md) §7) |
 | A7 | **Graduation / clearance workflow** | Checklist-driven process: credits completed, fees cleared (if tracked), library clearance (if tracked), final GPA check, before a student is marked "graduated" and a transcript/certificate is issued | Otherwise "graduation" is just a status flag with no verification behind it | Registrar, Dean, Student | Essential | V1 basic, V2 automated checklist |
 | A8 | **Course catalog / curriculum versioning** | A definitive catalog of courses offered per program per academic year, including credit value, prerequisites, and which curriculum "version" a given student's cohort follows | Curricula change over time; a student admitted in 2023 may follow different requirements than one admitted in 2026. Without this, graduation-requirement checking is impossible | Registrar, Dept Admin, Student | Essential | V1 |
 | A9 | **Timetable/scheduling with room & conflict checking** | Structured timetable entity (course + section + lecturer + room + time slot) with clash detection | The proposed list mentions "teaching schedules" and "timetables" but not conflict prevention — double-booking a lecturer or room is a common real failure | Registrar, Lecturer, Student | Essential | V1 (manual entry + conflict *warnings*; auto-generation is V2/V3) |
@@ -61,7 +61,7 @@ The rest of this document works through the system area by area.
 | B7 | **"Other learning materials" as an open-ended file type list** | Vague; every extra file type is a security-review surface (upload validation) | Define a fixed allow-list: PDF, DOCX, PPTX, XLSX, common image formats, MP4 (or better, external video links — see §11) |
 | B8 | **Separate "Course pages" and "Course syllabus" and "Course topics/modules" listed as distinct top-level features** | These are all facets of one `Course` + `CourseContent` entity, not separate modules | Merge into a single course-content structure (see database model, §4) |
 | B9 | **Discussion forums as full-blown generic forum software** | A full forum system (threads, subforums, moderation queues) is a lot of surface area for uncertain payoff in V1 | V1: a simple per-course Q&A/discussion thread attached to announcements. Evaluate a richer forum for V2 based on actual usage |
-| B10 | **Faculty Administrator and Department Administrator as fully separate role types with their own dashboards from day one** | Reasonable long-term, but for a university with a small number of faculties, this may be over-structured for V1 depending on your actual org size | Confirmed as needed once you answer the scale question in §25 — kept in the role model either way since it's cheap to include, but dashboard depth for these two roles can start shallow |
+| B10 | **Faculty Administrator and Department Administrator as fully separate role types with their own dashboards from day one** | With scale now confirmed as medium (5–8 faculties, 2–6 departments each — see `04-grading-and-academic-policy.md` §12), this structure is confirmed as needed, not over-built | Kept in the role model as originally planned; dashboard depth for these two roles can still start shallow in V1 |
 
 **Nothing above is removed outright** — per your instructions, difficulty is never the reason to cut something. Each is either resequenced to a later version or narrowed in scope for V1.
 
@@ -87,7 +87,7 @@ The rest of this document works through the system area by area.
 - **Librarian** — same reasoning, narrower still (A16); most universities keep the library system entirely separate and this system doesn't need to know more than a pass/fail clearance flag.
 - **Quality Assurance Officer** — this is normally an *auditor-style* consumer of reports (grade distributions, accreditation data), covered by the Auditor role above rather than needing its own account type, unless you tell us otherwise.
 
-**Open question:** whether Dean/HoD are separate people from Faculty/Department Administrator at your university, and whether Advisor is a distinct staff role or a capability every lecturer has for their assigned advisees. See §25.
+**Resolved (2026-08-17):** Dean/HoD are confirmed as separate people/roles from Faculty/Department Administrator (academic leadership vs. administrative data entry), and Academic Advisor is confirmed as a distinct role even where a lecturer doubles as an advisor in practice — see [`04-grading-and-academic-policy.md`](04-grading-and-academic-policy.md) §13. No change needed to the role table above; it already reflected this.
 
 ---
 
@@ -148,7 +148,7 @@ This is close to correct. Corrections/additions:
 3. **Missing: registration period / add-drop window.** Universities normally have a defined window for registering and a separate, shorter window for dropping/adding without penalty. This needs to be a semester-level configuration, not assumed to be always-open.
 4. **Missing: withdrawal path branching off between "Course registration" and "Examinations"** — a student can withdraw from a course mid-semester (→ "W" grade), which is a distinct branch from simply not showing up.
 5. **"Grading" is really three sub-steps you've collapsed into one: mark entry (lecturer) → verification/moderation (HoD/Exam Officer, optional but common) → approval & lock (Exam Officer/Registrar).** This is the single most important correction in the whole workflow (see A2).
-6. **"Academic progression" needs an explicit decision point**, not just a label: at the end of each semester/year, the system should evaluate each student against progression rules (pass, proceed with conditions, repeat semester, probation, dismiss) — this needs your actual rules (see open questions).
+6. **"Academic progression" needs an explicit decision point**, not just a label: at the end of each semester/year, the system evaluates each student against progression rules (pass, proceed with conditions, repeat semester, probation, dismiss) — rules confirmed in [`04-grading-and-academic-policy.md`](04-grading-and-academic-policy.md) §7 (CGPA < 2.0 → probation; single-semester GPA < 1.5 → dismissal). Note the flagged gap there: a student can sit on probation indefinitely without a defined recovery/escalation path — still open.
 7. **Missing: graduation eligibility check as a distinct step before "Graduation"** — credits completed, GPA threshold, no outstanding "Incomplete" grades, clearance flags if used (A7).
 8. **Transcript generation should be triggered both by graduation AND by ad-hoc request** (a continuing student requesting a transcript mid-program for a scholarship application, for instance) — it isn't only an end-of-journey event.
 
@@ -248,20 +248,11 @@ Not SQL — entities, purpose, key relationships. Grouped by domain.
 
 ## 9. Examination & grading audit
 
-The proposal correctly lists most needed concepts but assumes a grading model rather than defining one. Needed, and **all dependent on your actual policy** (see §25 open questions):
+**Status: resolved.** All the policy questions this section originally raised are now answered in **[`04-grading-and-academic-policy.md`](04-grading-and-academic-policy.md)** — grading scale, boundaries, GPA points, credit weighting, pass mark, retakes, withdrawal, Incomplete handling, and probation/dismissal thresholds. That document is now the authoritative source the `GradingScheme` configuration and grading engine are built from; a handful of small open items remain there (flagged explicitly, not guessed) rather than here.
 
-- Assessment component types and their default weights (assignment / continuous assessment / midterm / final / practical) — is this fixed university-wide or configurable per course/department?
-- Letter-grade boundaries (what score range = A, B, C, etc.) and whether they're uniform across the university or can vary by faculty.
-- Grade point values per letter grade, for GPA calculation.
-- Credit-hour weighting in GPA/CGPA (standard formula, but confirm your credit system — see §25).
-- Pass mark, and whether it's uniform or varies (e.g. postgraduate vs undergraduate).
-- Retake policy: capped number of attempts? Best score kept or most recent? Does a retake replace the failed attempt on the transcript or appear alongside it?
-- Repeated-course/repeated-semester policy and how it interacts with probation status (A6).
-- Withdrawal grade ("W") — does it count in GPA? Deadline for withdrawing without academic penalty?
-- Incomplete ("I") grade — default resolution deadline, and what happens automatically if it's not resolved (converts to F? stays incomplete indefinitely — not recommended)?
-- Whether online/proctored examinations are needed in V1 or a later version (affects whether `Submission`/attempt metadata needs lockdown-browser-style fields — see §7).
+Still open, not covered by the policy document: whether online/proctored examinations are needed in V1 or a later version (affects whether `Submission`/attempt metadata needs lockdown-browser-style fields — see §7). Deferred to V2/V3 per the LMS audit (§10) unless you tell us otherwise.
 
-None of these are assumed in the data model above; the model is built to be **configurable** (a GradingScheme entity referenced by CurriculumVersion) rather than hard-coding one university's rules, specifically so we don't have to guess.
+The data model (§7 above) is built to be **configurable** (a `GradingScheme` entity referenced by `CurriculumVersion`) rather than hard-coding one set of rules — so the specific numbers in `04-grading-and-academic-policy.md` are stored as data, and a future policy change is a data update, not a code change.
 
 ---
 
@@ -293,7 +284,7 @@ None of these are assumed in the data model above; the model is built to be **co
 
 **Deliberately deferred:** QR-code check-in, geolocation, biometric, and mobile self-check-in (B2) — these solve a problem (large lecture halls, proxy attendance/buddy-marking fraud) that's worth revisiting only after V1 usage shows manual marking is actually a bottleneck or attendance fraud is a real problem at your institution. Simpler and more reliable to launch with.
 
-Lecturer attendance (i.e., tracking whether the lecturer themselves showed up) — include only if your university's HR/administration actually uses this for anything (payroll, performance review); otherwise it's scope with no consumer. Flagged as an open question.
+Lecturer attendance (i.e., tracking whether the lecturer themselves showed up) — **resolved: out of scope for this system.** Confirmed 2026-08-17 that only student attendance is tracked here; lecturer attendance is assumed to belong to HR/teaching-load systems (see `04-grading-and-academic-policy.md` §11). A minimum-attendance exam-eligibility gate (75%, configurable per faculty) is also now confirmed — see the same section.
 
 ---
 
@@ -399,7 +390,7 @@ All reports respect the RBAC/privacy scoping in §5/§13 — no report bypasses 
 
 ## 18. Scalability
 
-Design for **medium scale by default** (a few thousand students, a few hundred lecturers, tens of thousands of course registrations per year) without over-engineering for scale you may never need — see the open question in §25 to confirm actual numbers. A conventional relational database with proper indexing, object storage for files, and a stateless application layer easily supports this; no need for microservices, sharding, or specialized big-data infrastructure at this stage.
+**Confirmed:** medium scale (roughly 2,000–15,000 students, full university from V1, 5–8 faculties — see `03-open-questions-and-decisions.md` and `04-grading-and-academic-policy.md` §12) without over-engineering for scale not yet needed. A conventional relational database with proper indexing, object storage for files, and a stateless application layer easily supports this; no need for microservices, sharding, or specialized big-data infrastructure at this stage.
 
 ---
 

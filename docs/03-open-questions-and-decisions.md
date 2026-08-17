@@ -9,7 +9,14 @@ Nothing in `00-requirements-audit.md`'s grading, GPA, progression, or attendance
 
 ---
 
-## A. Academic policy questions (please answer in your own words — no need to use technical terms)
+## A. Academic policy questions — ✅ ANSWERED 2026-08-17
+
+**All 22 questions below are now answered.** The confirmed policy is written up in **[`04-grading-and-academic-policy.md`](04-grading-and-academic-policy.md)**, which is now the authoritative source for the grading engine and academic-progression rules. The original 22 questions are kept below for traceability (what was asked → where it's answered), not because they're still open.
+
+A handful of small gaps surfaced *while* writing up the policy (things your answer didn't fully specify, or where two of your answers had a slight tension) — those are listed in `04-grading-and-academic-policy.md`'s "Open items from this policy pass" section at the bottom, not repeated here.
+
+<details>
+<summary>Original 22 questions (for reference)</summary>
 
 ### Grading & GPA
 1. What grading scale does your university use — letter grades (A–F), percentage, a numeric scale (e.g. 5.0/4.0), or something else?
@@ -49,9 +56,11 @@ Nothing in `00-requirements-audit.md`'s grading, GPA, progression, or attendance
 ### Admissions
 22. Should this system handle the applicant/admissions pipeline (people applying who aren't students yet), or does your university already have a separate admissions system and this one should only take over once someone is officially admitted?
 
+</details>
+
 ---
 
-## B. Architecture/scope decisions
+## B. Architecture/scope decisions — ✅ ANSWERED 2026-08-17
 
 These will be asked through the chat interface as a short set of multiple-choice questions, since any answer is workable and doesn't require university-specific knowledge — just your preference:
 
@@ -87,5 +96,23 @@ The four items below have moved from "unowned open question" to "owned, with a d
 
 **Note on "special category" data:** the guidance above referenced tighter rules for "special categories" of data. This wasn't independently confirmed in my earlier research (my search results described general processing principles and data-subject rights but didn't surface a documented special-category regime) — worth having your Legal/DPO contact confirm directly with the DPA guidance document before it's relied on for the consent/admissions workflow design.
 
+### §A resolved — 8 remaining forks pinned down via follow-up (2026-08-17)
+
+Your written answers to §A settled most of the 22 questions outright. Eight items were presented as genuine either/or choices rather than single picks (grade granularity, retake attempts/scoring, late-withdrawal handling, dismissal trigger, exam-entry clearance scope, attendance gating, and an ambiguous admissions answer) — resolved via follow-up questions:
+
+| Question | Decision |
+|---|---|
+| Grade granularity | Plus/minus (A, A-, B+, B, B-, ...) |
+| Retake attempts | 2 retake attempts (3 total attempts including the original) |
+| Retake scoring | Capped at pass mark for GPA (D/1.0), even if actual score is higher |
+| Late withdrawal | Allowed, recorded as "WF" — counts as a fail in GPA |
+| Dismissal trigger | Single-semester GPA below 1.5 (not tied to CGPA or consecutive semesters) |
+| Fee/library clearance scope | Graduation only — never blocks exam entry |
+| Attendance exam-eligibility gate | Enabled by default at 75%, configurable per faculty |
+| Admissions module | Included in this system (lightweight application → decision → enrollment pipeline) |
+
+Full numeric detail (grade boundaries, GPA table, weight bands, deadlines) is in `04-grading-and-academic-policy.md`.
+
 ### Still pending
-- All of §A (academic policy — grading, GPA, credits, semesters, progression, retakes, graduation, attendance, org structure, advising, admissions)
+- The residual gaps listed at the bottom of `04-grading-and-academic-policy.md` (consequence of exhausting both retakes, indefinite-probation escalation path, exact withdrawal/incomplete deadlines, PG-specific pass mark, excused-absence treatment in the attendance gate, per-program credit totals).
+- The Somalia DPA governance follow-ups logged above (cloud vendor selection, DPA registration, retention schedule, minors-in-admissions confirmation).
