@@ -16,6 +16,7 @@ import { AuditModule } from './audit/audit.module';
 import { EmailModule } from './email/email.module';
 import { LmsModule } from './lms/lms.module';
 import { NotificationsModule } from './notifications/notifications.module';
+import { AdmissionsModule } from './admissions/admissions.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { RolesGuard } from './common/guards/roles.guard';
 
@@ -35,6 +36,7 @@ import { RolesGuard } from './common/guards/roles.guard';
     AttendanceModule,
     AssessmentModule,
     LmsModule,
+    AdmissionsModule,
   ],
   controllers: [AppController],
   providers: [

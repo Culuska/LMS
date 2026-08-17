@@ -95,12 +95,23 @@ not just "compiles"):
   §12, V2+). Dispatched on: course-scoped announcement created, result published, grade
   change approved (to the student) or denied (to the requester). List-mine and mark-read
   endpoints; ownership enforced (can't mark someone else's notification read).
+- **Admissions** (`src/admissions/`) — the applicant pipeline confirmed in scope by
+  docs/00 item A1: public `POST /applications` (no account needed to apply) → staff review
+  (`UNDER_REVIEW`/`OFFERED`/`REJECTED`/`WITHDRAWN`) → `accept` converts an `OFFERED`
+  applicant into a real User+Student account (same temporary-password stopgap as
+  `UsersService`). The Somalia DPA guardian-consent gate (docs/00 §8 rule 13) is enforced
+  twice: submission rejects an under-18 applicant with no guardian name/email, and every
+  status transition re-checks a `ConsentRecord` exists before letting a minor's application
+  progress. Deliberately does NOT auto-create an `Enrollment` on acceptance — which
+  `CurriculumVersion` applies is a Registrar decision, not something admissions should guess.
 
-  All of the above verified live against a running server + real database via five scripts
-  totaling 47 checks: `smoke-test.sh` (registration rules), `smoke-test-grading.sh` (the full
+  All of the above verified live against a running server + real database via six scripts
+  totaling 59 checks: `smoke-test.sh` (registration rules), `smoke-test-grading.sh` (the full
   grading pipeline), `smoke-test-grade-change.sh` (request → approve/deny, the lecturer-
   ownership check, and the Super-Admin-cannot-approve restriction specifically),
   `smoke-test-auth.sh` (password reset/change, role assignment, no-account-enumeration),
+  `smoke-test-admissions.sh` (minor-without-guardian-info rejected, full application→offer→
+  accept→login flow, double-accept blocked),
   `smoke-test-lms.sh` (course content nesting/deletion rules, announcement→notification
   dispatch, cross-user notification access blocked).
 
@@ -122,8 +133,7 @@ not just "compiles"):
   across the codebase, not unique to any one module, flagged here rather than silently
   assumed correct.
 - **Assignments/quizzes as LMS content** (student-facing submission workflow — `Submission`
-  exists in the schema, no service layer), reports, admissions workflow, transcript
-  generation.
+  exists in the schema, no service layer), reports, transcript generation.
 - **Frontend.** See `../frontend/` — a thin login-flow slice only; none of the above has
   a UI yet.
 
@@ -156,6 +166,8 @@ returned in the login/`/auth/me` response for the frontend to act on; use
 | `./smoke-test-grading.sh` | Live scenario test of the full grading pipeline |
 | `./smoke-test-grade-change.sh` | Live scenario test of the grade-change request workflow |
 | `SERVER_LOG=<path> ./smoke-test-auth.sh` | Live scenario test of password reset/change and role assignment — needs the running server's stdout log path to read the console-stub "email" |
+| `./smoke-test-lms.sh` | Live scenario test of course content, announcements, and notification dispatch |
+| `./smoke-test-admissions.sh` | Live scenario test of the admissions workflow, including the guardian-consent gate |
 
 All smoke-test scripts assume a freshly seeded database (they create their own
 faculty/course/student data with fixed codes, so re-running without resetting the DB
@@ -174,7 +186,8 @@ Each directory under `src/` is a Nest module matching a domain boundary from
 `academic-calendar` (years/semesters), `courses` (courses/prerequisites/curriculum/offerings),
 `enrollment` (enrollments/course registrations), `attendance` (sessions/records),
 `assessment` (assessment items/marks/course results/grade-change requests/academic
-standing — the grading pipeline), `grading` (pure calculation functions, DB-independent
-and reused by whichever module needs them), `audit` (the one shared sensitive-action log),
+standing — the grading pipeline), `lms` (course content/announcements), `notifications`,
+`admissions` (applications), `grading` (pure calculation functions, DB-independent and
+reused by whichever module needs them), `audit` (the one shared sensitive-action log),
 `email` (the one shared, swappable email abstraction), `prisma` (the one shared database
 connection), `common` (guards/decorators/offering-ownership checks shared across modules).
