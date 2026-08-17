@@ -18,6 +18,23 @@ import { Roles } from '../common/decorators/roles.decorator';
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
+  // SUPER_ADMIN only, matching the role-assignment endpoints below — this is the full
+  // user directory (email, active flag, every role held), not just a name picker.
+  @Roles(RoleName.SUPER_ADMIN)
+  @Get()
+  findAll() {
+    return this.usersService.listAll();
+  }
+
+  // Narrower than findAll(): just enough (id, name, staff number, department) to power
+  // pickers like "assign a lecturer to this course offering" — open to the same roles
+  // that can create an offering (CourseOfferingsController).
+  @Roles(RoleName.SUPER_ADMIN, RoleName.REGISTRAR, RoleName.DEPARTMENT_ADMIN)
+  @Get('lecturers')
+  findAllLecturers() {
+    return this.usersService.listLecturers();
+  }
+
   @Roles(RoleName.SUPER_ADMIN, RoleName.REGISTRAR, RoleName.DEPARTMENT_ADMIN)
   @Post('lecturers')
   createLecturer(@Body() dto: CreateLecturerDto) {

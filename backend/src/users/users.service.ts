@@ -188,6 +188,38 @@ export class UsersService {
     return this.prisma.userRole.findMany({ where: { userId } });
   }
 
+  /** Powers the admin "Users & Roles" screen — every user with their current role
+   * assignments, so an admin can see who holds what before granting/revoking anything. */
+  listAll() {
+    return this.prisma.user.findMany({
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        isActive: true,
+        roles: {
+          select: { id: true, role: true, facultyId: true, departmentId: true },
+        },
+      },
+      orderBy: [{ lastName: 'asc' }, { firstName: 'asc' }],
+    });
+  }
+
+  /** Lecturer records (id + name) for admin pickers — e.g. assigning a lecturer to a
+   * course offering — without exposing the full user list for that narrower purpose. */
+  listLecturers() {
+    return this.prisma.lecturer.findMany({
+      select: {
+        id: true,
+        staffNumber: true,
+        departmentId: true,
+        user: { select: { firstName: true, lastName: true, email: true } },
+      },
+      orderBy: { staffNumber: 'asc' },
+    });
+  }
+
   async removeRole(userId: string, userRoleId: string) {
     const userRole = await this.prisma.userRole.findUnique({
       where: { id: userRoleId },

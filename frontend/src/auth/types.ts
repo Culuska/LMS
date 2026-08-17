@@ -23,6 +23,9 @@ export interface AuthenticatedUser {
   firstName: string;
   lastName: string;
   roles: RoleName[];
+  mustChangePassword: boolean;
+  studentId?: string;
+  lecturerId?: string;
 }
 
 export interface LoginResponse {

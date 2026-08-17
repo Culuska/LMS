@@ -39,14 +39,23 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
     throw new ApiError(response.status, message);
   }
 
-  if (response.status === 204) {
+  // Some endpoints (e.g. role removal) return 200/204 with no body at all — NestJS
+  // doesn't force 204 just because a handler returns void. Read as text first so an
+  // empty body doesn't throw trying to JSON-parse "".
+  const text = await response.text();
+  if (!text) {
     return undefined as T;
   }
-  return (await response.json()) as T;
+  return JSON.parse(text) as T;
 }
 
 export const api = {
   get: <T>(path: string) => request<T>(path, { method: 'GET' }),
   post: <T>(path: string, body?: unknown) =>
     request<T>(path, { method: 'POST', body: body ? JSON.stringify(body) : undefined }),
+  patch: <T>(path: string, body?: unknown) =>
+    request<T>(path, { method: 'PATCH', body: body ? JSON.stringify(body) : undefined }),
+  put: <T>(path: string, body?: unknown) =>
+    request<T>(path, { method: 'PUT', body: body ? JSON.stringify(body) : undefined }),
+  delete: <T>(path: string) => request<T>(path, { method: 'DELETE' }),
 };

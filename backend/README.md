@@ -71,7 +71,11 @@ not just "compiles"):
 
 - **Role assignment** (`POST/GET/DELETE /users/:userId/roles`, `SUPER_ADMIN` only) — grants
   or revokes a role on an existing account. Closes the gap every earlier smoke test had to
-  work around with direct SQL.
+  work around with direct SQL. `GET /users` (`SUPER_ADMIN` only — the full directory,
+  every user with their current role assignments, powering the frontend's Users & Roles
+  screen) and `GET /users/lecturers` (`SUPER_ADMIN`/`REGISTRAR`/`DEPARTMENT_ADMIN` — just
+  enough to populate a lecturer picker, e.g. when creating a course offering) round out
+  the users API now that the frontend needs to list rather than only create/mutate.
 - **Password reset & change** — `forgot-password`/`reset-password` (public, single-use
   SHA-256-hashed tokens, 1-hour expiry, identical response whether or not the email exists
   so it can't be used to enumerate accounts) and an authenticated `change-password` that
@@ -146,8 +150,10 @@ not just "compiles"):
   exists in the schema, no service layer) and administrative reports beyond the transcript.
 - **Transcript PDF rendering.** The endpoint returns structured JSON, not a printable
   document — no PDF library is wired in yet.
-- **Frontend.** See `../frontend/` — a thin login-flow slice only; none of the above has
-  a UI yet.
+- **Frontend.** See `../frontend/` — real screens now cover student/lecturer/admin flows
+  including the full grading pipeline, but curriculum-version management, structural
+  record edit/delete, and a forced password-change prompt still have no UI (see that
+  README's gap list for the current cut).
 
 ## Local development
 
@@ -184,7 +190,26 @@ returned in the login/`/auth/me` response for the frontend to act on; use
 
 All smoke-test scripts assume a freshly seeded database (they create their own
 faculty/course/student data with fixed codes, so re-running without resetting the DB
-will hit conflicts on the second run).
+will hit conflicts on the second run). Reset with:
+
+```bash
+psql -h localhost -p 5432 -U postgres -d lms_dev -c "TRUNCATE TABLE users, faculties, \
+  departments, programs, courses, academic_years, semesters, curriculum_versions, \
+  curriculum_courses, course_offerings, students, lecturers, enrollments, \
+  course_registrations, academic_record_entries, user_roles, course_prerequisites, \
+  gpa_records, attendance_sessions, attendance_records, assessment_items, marks, \
+  course_results, audit_logs, grade_change_requests, password_reset_tokens, \
+  course_content, announcements, notifications, applications, consent_records \
+  RESTART IDENTITY CASCADE;"
+npx prisma db seed
+```
+
+**Connect over TCP (`-h localhost -p 5432`), not `psql`'s default local socket.** In some
+sandboxed dev environments the default unix-socket connection (e.g. `su postgres -c
+psql`) is routed to an isolated Postgres instance that looks identical but isn't the one
+the running server actually talks to — a truncate against it silently does nothing to
+the real data. If a "freshly reset" database still 409s on a fixture the app should no
+longer have, check for exactly this before assuming it's an application bug.
 
 ### Environment variables
 

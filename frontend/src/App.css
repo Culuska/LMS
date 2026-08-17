@@ -88,3 +88,312 @@
   justify-content: center;
   color: #666;
 }
+
+/* --- App shell / nav --- */
+
+.app-shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.app-header {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  padding: 0.75rem 1.5rem;
+  background: #1e3a5f;
+  color: #fff;
+}
+
+.app-brand {
+  font-weight: 700;
+  color: #fff;
+  text-decoration: none;
+  font-size: 1.05rem;
+  white-space: nowrap;
+}
+
+.app-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  flex: 1;
+}
+
+.app-nav a {
+  color: #dbe6f2;
+  text-decoration: none;
+  font-size: 0.9rem;
+}
+
+.app-nav a:hover {
+  color: #fff;
+  text-decoration: underline;
+}
+
+.app-nav-bell {
+  margin-left: auto;
+}
+
+.app-user {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.9rem;
+  white-space: nowrap;
+}
+
+.app-user button {
+  padding: 0.35rem 0.75rem;
+  border: 1px solid #dbe6f2;
+  border-radius: 4px;
+  background: transparent;
+  color: #fff;
+  cursor: pointer;
+}
+
+.app-content {
+  flex: 1;
+  max-width: 1100px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 1.5rem;
+}
+
+/* --- Hub / dashboard cards --- */
+
+.hub-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+.hub-card {
+  display: block;
+  padding: 1.1rem;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  text-decoration: none;
+  color: inherit;
+  background: #fff;
+  transition: box-shadow 0.15s ease;
+}
+
+.hub-card:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.hub-card h2 {
+  margin: 0 0 0.35rem;
+  font-size: 1.05rem;
+  color: #1e3a5f;
+}
+
+.hub-card p {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #555;
+}
+
+/* --- Shared data table --- */
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0.75rem 0;
+  font-size: 0.9rem;
+}
+
+.data-table th,
+.data-table td {
+  text-align: left;
+  padding: 0.5rem 0.6rem;
+  border-bottom: 1px solid #e5e5e5;
+}
+
+.data-table th {
+  background: #f4f5f7;
+  font-weight: 600;
+}
+
+.data-table .action-cell {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.mark-input {
+  width: 4.5rem;
+  padding: 0.25rem 0.35rem;
+}
+
+/* --- Forms --- */
+
+.inline-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  align-items: center;
+  margin: 0.75rem 0 1.5rem;
+  padding: 0.9rem;
+  background: #f9fafb;
+  border: 1px solid #e5e5e5;
+  border-radius: 6px;
+}
+
+.inline-form input,
+.inline-form select {
+  padding: 0.4rem 0.55rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 0.9rem;
+}
+
+.inline-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  font-size: 0.75rem;
+  color: #555;
+}
+
+.inline-form.form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+}
+
+.inline-form button {
+  padding: 0.45rem 0.9rem;
+  border: none;
+  border-radius: 4px;
+  background: #1e3a5f;
+  color: #fff;
+  cursor: pointer;
+  align-self: flex-end;
+}
+
+/* --- Tabs --- */
+
+.tab-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-bottom: 1rem;
+}
+
+.tab-bar button {
+  padding: 0.4rem 0.8rem;
+  border: 1px solid #ccc;
+  border-radius: 999px;
+  background: #fff;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+.tab-bar button.tab-active {
+  background: #1e3a5f;
+  color: #fff;
+  border-color: #1e3a5f;
+}
+
+/* --- Notifications --- */
+
+.notification-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.notification-list li {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  padding: 0.75rem 1rem;
+  border-radius: 6px;
+  border: 1px solid #e5e5e5;
+}
+
+.notification-list li.notification-unread {
+  background: #eef4fb;
+  border-color: #c9dcf0;
+}
+
+.notification-list li p {
+  margin: 0.2rem 0;
+}
+
+.notification-date {
+  font-size: 0.75rem;
+  color: #888;
+}
+
+/* --- Transcript --- */
+
+.transcript-program {
+  color: #555;
+  margin: 0.25rem 0;
+}
+
+.transcript-semester {
+  margin: 1.25rem 0;
+}
+
+.transcript-semester h2 {
+  font-size: 1rem;
+  margin-bottom: 0.35rem;
+}
+
+.transcript-summary {
+  margin-top: 1.5rem;
+  padding: 1rem;
+  background: #f9fafb;
+  border: 1px solid #e5e5e5;
+  border-radius: 6px;
+}
+
+.transcript-summary p {
+  margin: 0.3rem 0;
+}
+
+/* --- Misc --- */
+
+.error {
+  color: #b3261e;
+  font-size: 0.85rem;
+}
+
+.notice {
+  color: #1a6b3c;
+  font-size: 0.85rem;
+  background: #e9f7ee;
+  border: 1px solid #bfe6cc;
+  border-radius: 4px;
+  padding: 0.5rem 0.75rem;
+}
+
+.role-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  background: #eef1f4;
+  border-radius: 999px;
+  padding: 0.15rem 0.5rem;
+  margin: 0.1rem 0.2rem 0.1rem 0;
+  font-size: 0.78rem;
+}
+
+.role-revoke {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: #b3261e;
+  font-size: 0.9rem;
+  line-height: 1;
+  padding: 0 0.15rem;
+}
