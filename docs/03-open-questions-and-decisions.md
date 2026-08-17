@@ -71,8 +71,14 @@ These will be asked through the chat interface as a short set of multiple-choice
 | 2026-08-17 | B: Expected scale | **Medium — full university** (~2,000–15,000 students across all faculties from V1) | Lecturer |
 | 2026-08-17 | B: Mobile strategy | **Responsive web only for V1** — no native app, no PWA for now | Lecturer |
 | 2026-08-17 | B: Hosting | **Cloud-managed** (e.g. AWS/Azure/GCP-style managed hosting, not on-premise) | Lecturer |
-| 2026-08-17 | B: Data protection framework | **A specific national law applies** — country not yet specified; *pending* — see question below | Lecturer |
+| 2026-08-17 | B: Data protection framework | **Somalia Data Protection Act No. 005 of 2023**, plus DPA regulations/guidance. Key requirements folded into `00-requirements-audit.md` §13: 72-hour breach notification, cross-border transfer safeguards, data-subject rights (access/rectification/erasure/portability/objection), "major importance" controller registration, children's (under-18) consent. | Lecturer |
+
+### New follow-ups from the Somalia DPA research (not yet resolved)
+- **Cross-border transfer safeguards:** the university needs a data-processing/transfer agreement with whichever cloud vendor is selected, before go-live. This is a procurement/legal task, not an engineering one — who at the university handles this (registrar's office, legal counsel, IT policy office)?
+- **"Data controller of major importance" registration:** does the university already have a Somalia DPA registration, or does this need to be initiated? (Independent of the software build, but affects go-live readiness.)
+- **Erasure-request handling for academic records:** confirm who has authority to approve/deny an erasure request that touches records under academic-retention obligations (Registrar? A designated data-protection contact?).
+- **Minors in admissions:** does your university admit any students under 18 (e.g. accelerated-entry programs)? If yes, the Admissions module needs guardian-consent capture.
+- **Data retention periods per category:** how long should academic records, rejected-applicant data, login/session logs, and attendance records be kept? (Transcripts are typically retained long-term/permanently for accreditation purposes — confirm if that matches your institution's practice.)
 
 ### Still pending
-- **Which country's data-protection law applies?** (needed to finalize retention/erasure rules in `00-requirements-audit.md` §13)
 - All of §A (academic policy — grading, GPA, credits, semesters, progression, retakes, graduation, attendance, org structure, advising, admissions)

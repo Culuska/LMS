@@ -43,6 +43,8 @@
 - A managed Postgres instance, containerized app deployment (e.g. on a platform like Render/Fly/AWS ECS), managed object storage (S3), managed email delivery (e.g. SES/Postmark/SendGrid). Lower operational burden — no one on a small university IT team needs to patch database servers at 2am.
 - Separate **development**, **staging**, and **production** environments, with production changes only going out through the staging environment first.
 
+**Cross-border transfer note (Somalia DPA Act No. 005/2023 — see `00-requirements-audit.md` §13):** Somalia has no major hyperscaler region, so cloud-managed hosting means personal data leaves the country. This is legally workable under the Act (adequate safeguards, e.g. a data-processing agreement with contractual clauses), but it is a **procurement/legal step the university must take with the chosen cloud vendor before go-live**, not something engineering resolves by itself. Practical candidates worth evaluating for proximity/latency and vendor data-protection terms: AWS Africa (Cape Town), Microsoft Azure UAE regions, or another provider your university's counsel is comfortable signing transfer safeguards with. Flagged in the open-questions log — needs your compliance/legal contact, not a technical decision.
+
 ## Backups & recovery
 
 - Automated daily database backups, retained per your data-retention decision, tested by periodic restore drills (an untested backup is not a real backup).
