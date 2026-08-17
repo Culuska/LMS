@@ -2,18 +2,39 @@
 
 A combined Student Information System and Learning Management System for a university, built through a coordinated multi-agent engineering process (see `docs/01-agent-responsibility-matrix.md`).
 
-## Status: Requirements & Architecture phase — no application code yet
+## Status: In development
 
-Per project discipline (`Requirements → Gap Analysis → Architecture → Database Design → UI/UX → Development → Testing → Security → Deployment`), we are at the first stage. Nothing below is optional reading if you're picking this project up — it's the shared source of truth every later phase builds on.
+Requirements, architecture, and academic/grading policy are settled (see Documents
+below). Development has started: a working backend (auth, RBAC, academic structure,
+course registration with its data-integrity rules, a tested grading engine) and a thin
+frontend vertical slice (login → dashboard) both exist and are verified working —
+see `backend/README.md` and `frontend/README.md` for exactly what's built vs. not yet.
 
 ## Documents
 
 1. [`docs/00-requirements-audit.md`](docs/00-requirements-audit.md) — Full requirements audit: missing features, unnecessary/premature features, user roles, RBAC model, corrected academic workflow, conceptual database model, data-integrity rules, examination/grading audit, LMS/attendance/security/privacy audits, reports, and the final gap analysis (Must/Should/Nice/Remove).
 2. [`docs/01-agent-responsibility-matrix.md`](docs/01-agent-responsibility-matrix.md) — How development work is divided across specialized agent roles, the communication protocol between them, and the definition of done.
-3. [`docs/02-architecture-proposal.md`](docs/02-architecture-proposal.md) — Proposed technical architecture (frontend, backend, database, storage, hosting, security, CI/CD).
-4. [`docs/03-open-questions-and-decisions.md`](docs/03-open-questions-and-decisions.md) — Running decision log. Both the academic-policy questions (§A) and architecture questions (§B) are now answered.
-5. [`docs/04-grading-and-academic-policy.md`](docs/04-grading-and-academic-policy.md) — **Authoritative grading & academic policy specification**: grading scale, GPA table, credit/semester structure, assessment weight bands, retakes, withdrawal, Incomplete handling, probation/dismissal, graduation requirements, registration rules, and attendance policy. This is what the grading engine and `GradingScheme` configuration are built from.
+3. [`docs/02-architecture-proposal.md`](docs/02-architecture-proposal.md) — Technical architecture (frontend, backend, database, storage, hosting, security, CI/CD) — now implemented, not just proposed.
+4. [`docs/03-open-questions-and-decisions.md`](docs/03-open-questions-and-decisions.md) — Running decision log. Both the academic-policy questions (§A) and architecture questions (§B) are answered.
+5. [`docs/04-grading-and-academic-policy.md`](docs/04-grading-and-academic-policy.md) — **Authoritative grading & academic policy specification**: grading scale, GPA table, credit/semester structure, assessment weight bands, retakes, withdrawal, Incomplete handling, probation/dismissal, graduation requirements, registration rules, and attendance policy. This is what `backend/src/grading/` implements.
 
-## Status
+## Code
 
-Requirements, roles/RBAC, architecture, privacy/compliance (Somalia DPA Act No. 005/2023), and academic/grading policy are all confirmed. A short list of small residual gaps is tracked at the bottom of `docs/04-grading-and-academic-policy.md` and in `docs/03-open-questions-and-decisions.md` — none of them block starting database schema and API contract design, which is the next phase.
+- [`backend/`](backend/) — NestJS + Prisma + PostgreSQL API. See `backend/README.md` for
+  what's implemented, what's verified, what's explicitly not built yet, and how to run it.
+- [`frontend/`](frontend/) — React + TypeScript + Vite. A working login flow only —
+  see `frontend/README.md`.
+
+## Continuous integration
+
+[`.github/workflows/backend-ci.yml`](.github/workflows/backend-ci.yml) — lint,
+type-check, migrate, unit tests, build, e2e tests against a real Postgres service
+container, on every push/PR touching `backend/`.
+
+## What's next
+
+Per the development sequence in `docs/01-agent-responsibility-matrix.md`
+(Requirements → Architecture → Database → API → UI/UX → Development → Testing →
+Security → Deployment), the grading pipeline (Mark → CourseResult → approval →
+publication → transcript) and the LMS/attendance/notifications modules are the next
+pieces — see `backend/README.md`'s "not implemented yet" list for the full picture.

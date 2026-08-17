@@ -1,0 +1,790 @@
+// University Management System + LMS — Database Schema
+// Source of truth: ../../docs/00-requirements-audit.md §7 (conceptual model)
+//                  ../../docs/04-grading-and-academic-policy.md (grading configuration)
+//
+// V1 scope only (see docs/00-requirements-audit.md "Must Have" list). Entities and
+// fields for deferred V2/V3 features (proctored exams, SCORM, peer review, etc.)
+// are intentionally not modeled yet — add them when that phase starts, not before.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Identity & structure
+// ─────────────────────────────────────────────────────────────────────────
+
+enum RoleName {
+  SUPER_ADMIN
+  IT_ADMIN
+  REGISTRAR
+  DEAN
+  HEAD_OF_DEPARTMENT
+  FACULTY_ADMIN
+  DEPARTMENT_ADMIN
+  EXAM_OFFICER
+  ADMISSIONS_OFFICER
+  ADVISOR
+  LECTURER
+  STUDENT
+  AUDITOR
+}
+
+/// One account per person. A person holding multiple roles (e.g. a lecturer who is
+/// also a department admin) is one User with multiple UserRole rows, never multiple accounts.
+model User {
+  id                 String   @id @default(uuid())
+  email              String   @unique
+  passwordHash       String
+  firstName          String
+  lastName           String
+  phone              String?
+  isActive           Boolean  @default(true)
+  mustChangePassword Boolean  @default(false)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  roles           UserRole[]
+  studentRecord   Student?
+  lecturerRecord  Lecturer?
+  auditLogEntries AuditLog[]      @relation("AuditActor")
+  consentRecords  ConsentRecord[]
+  notifications   Notification[]
+
+  @@map("users")
+}
+
+/// Role assignment, optionally scoped to a Faculty or Department (e.g. "Department Admin
+/// for Computer Science", not just "Department Admin" globally). Both scope fields are
+/// nullable — a null scope means the role applies university-wide (e.g. SUPER_ADMIN, REGISTRAR).
+model UserRole {
+  id           String   @id @default(uuid())
+  userId       String
+  role         RoleName
+  facultyId    String?
+  departmentId String?
+  createdAt    DateTime @default(now())
+
+  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  faculty    Faculty?    @relation(fields: [facultyId], references: [id])
+  department Department? @relation(fields: [departmentId], references: [id])
+
+  @@unique([userId, role, facultyId, departmentId])
+  @@index([userId])
+  @@map("user_roles")
+}
+
+model Faculty {
+  id        String   @id @default(uuid())
+  code      String   @unique
+  name      String
+  deanId    String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  departments Department[]
+  userRoles   UserRole[]
+
+  @@map("faculties")
+}
+
+model Department {
+  id        String   @id @default(uuid())
+  facultyId String
+  code      String   @unique
+  name      String
+  headId    String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  faculty   Faculty    @relation(fields: [facultyId], references: [id])
+  programs  Program[]
+  lecturers Lecturer[]
+  userRoles UserRole[]
+
+  @@index([facultyId])
+  @@map("departments")
+}
+
+model Program {
+  id           String       @id @default(uuid())
+  departmentId String
+  code         String       @unique
+  name         String
+  level        ProgramLevel
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  department         Department          @relation(fields: [departmentId], references: [id])
+  curriculumVersions CurriculumVersion[]
+  enrollments        Enrollment[]
+  applications       Application[]
+
+  @@index([departmentId])
+  @@map("programs")
+}
+
+enum ProgramLevel {
+  UNDERGRADUATE
+  POSTGRADUATE
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Academic calendar
+// ─────────────────────────────────────────────────────────────────────────
+
+model AcademicYear {
+  id        String   @id @default(uuid())
+  name      String   @unique // e.g. "2026/2027"
+  startDate DateTime
+  endDate   DateTime
+  isActive  Boolean  @default(false)
+
+  semesters Semester[]
+
+  @@map("academic_years")
+}
+
+enum SemesterTerm {
+  FIRST
+  SECOND
+  SUMMER
+}
+
+model Semester {
+  id                   String       @id @default(uuid())
+  academicYearId       String
+  term                 SemesterTerm
+  startDate            DateTime
+  endDate              DateTime
+  registrationOpensAt  DateTime
+  registrationClosesAt DateTime
+  /// Withdrawal without academic penalty ("W") allowed up to this date; after it, a
+  /// withdrawal is recorded as "WF" — see docs/04-grading-and-academic-policy.md §5.
+  withdrawalDeadline   DateTime
+  isActive             Boolean      @default(false)
+
+  academicYear        AcademicYear         @relation(fields: [academicYearId], references: [id])
+  courseOfferings     CourseOffering[]
+  courseRegistrations CourseRegistration[]
+  gpaRecords          GpaRecord[]
+
+  @@unique([academicYearId, term])
+  @@map("semesters")
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Curriculum
+// ─────────────────────────────────────────────────────────────────────────
+
+model Course {
+  id          String   @id @default(uuid())
+  code        String   @unique // e.g. "CS301"
+  title       String
+  description String?
+  credits     Int
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  prerequisitesOf   CoursePrerequisite[] @relation("CourseRequires")
+  requiredBy        CoursePrerequisite[] @relation("PrerequisiteFor")
+  offerings         CourseOffering[]
+  curriculumCourses CurriculumCourse[]
+
+  @@map("courses")
+}
+
+/// Self-referencing: `courseId` requires `prerequisiteCourseId` to be passed (or, per
+/// policy, in progress) before registration — enforced in CourseRegistration business logic,
+/// not just documented. See docs/00-requirements-audit.md §8 rule 2.
+model CoursePrerequisite {
+  id                   String @id @default(uuid())
+  courseId             String
+  prerequisiteCourseId String
+
+  course             Course @relation("CourseRequires", fields: [courseId], references: [id])
+  prerequisiteCourse Course @relation("PrerequisiteFor", fields: [prerequisiteCourseId], references: [id])
+
+  @@unique([courseId, prerequisiteCourseId])
+  @@map("course_prerequisites")
+}
+
+/// Which courses a Program requires, versioned by the academic year a cohort started —
+/// so a curriculum change never breaks an already-admitted student's graduation check.
+/// See docs/00-requirements-audit.md item A8.
+model CurriculumVersion {
+  id                   String   @id @default(uuid())
+  programId            String
+  versionLabel         String // e.g. "2026 intake"
+  effectiveFrom        DateTime
+  totalCreditsRequired Int
+  minCgpaToGraduate    Decimal  @default(2.0) @db.Decimal(3, 2)
+  createdAt            DateTime @default(now())
+
+  program     Program            @relation(fields: [programId], references: [id])
+  courses     CurriculumCourse[]
+  enrollments Enrollment[]
+
+  @@unique([programId, versionLabel])
+  @@map("curriculum_versions")
+}
+
+model CurriculumCourse {
+  id                  String  @id @default(uuid())
+  curriculumVersionId String
+  courseId            String
+  isCore              Boolean @default(true)
+
+  curriculumVersion CurriculumVersion @relation(fields: [curriculumVersionId], references: [id])
+  course            Course            @relation(fields: [courseId], references: [id])
+
+  @@unique([curriculumVersionId, courseId])
+  @@map("curriculum_courses")
+}
+
+/// A specific instance of a Course in a specific Semester — what "course allocation" and
+/// "timetable" actually attach to (docs/00-requirements-audit.md §7). Distinguishes
+/// definition (Course) from delivery (CourseOffering) so credit value/prerequisites don't
+/// duplicate across every semester a course runs.
+model CourseOffering {
+  id            String   @id @default(uuid())
+  courseId      String
+  semesterId    String
+  lecturerId    String
+  capacity      Int
+  room          String?
+  timetableSlot String? // e.g. "Mon/Wed 10:00-11:30" — kept simple for V1, see docs/00 A9
+  // Default split is 40/20/40, not 40/25/35 — see src/grading/grading.constants.ts
+  // for why (35% for Final fell below the Final band's own 40% floor).
+  caWeight      Decimal  @default(40) @db.Decimal(5, 2)
+  midtermWeight Decimal  @default(20) @db.Decimal(5, 2)
+  finalWeight   Decimal  @default(40) @db.Decimal(5, 2)
+  gradingLocked Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  course             Course               @relation(fields: [courseId], references: [id])
+  semester           Semester             @relation(fields: [semesterId], references: [id])
+  lecturer           Lecturer             @relation(fields: [lecturerId], references: [id])
+  registrations      CourseRegistration[]
+  attendanceSessions AttendanceSession[]
+  assessmentItems    AssessmentItem[]
+  announcements      Announcement[]
+
+  @@unique([courseId, semesterId, lecturerId])
+  @@index([semesterId])
+  @@map("course_offerings")
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// People
+// ─────────────────────────────────────────────────────────────────────────
+
+enum StudentStatus {
+  ACTIVE
+  PROBATION
+  DISMISSED
+  WITHDRAWN
+  GRADUATED
+}
+
+model Student {
+  id            String        @id @default(uuid())
+  userId        String        @unique
+  studentNumber String        @unique
+  dateOfBirth   DateTime?
+  status        StudentStatus @default(ACTIVE)
+  advisorId     String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  user                  User                  @relation(fields: [userId], references: [id])
+  advisor               Lecturer?             @relation(fields: [advisorId], references: [id])
+  enrollments           Enrollment[]
+  courseRegistrations   CourseRegistration[]
+  attendanceRecords     AttendanceRecord[]
+  submissions           Submission[]
+  academicRecordEntries AcademicRecordEntry[]
+  gpaRecords            GpaRecord[]
+  application           Application?
+
+  @@index([advisorId])
+  @@map("students")
+}
+
+model Lecturer {
+  id           String   @id @default(uuid())
+  userId       String   @unique
+  departmentId String
+  staffNumber  String   @unique
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user       User             @relation(fields: [userId], references: [id])
+  department Department       @relation(fields: [departmentId], references: [id])
+  offerings  CourseOffering[]
+  advisees   Student[]
+
+  @@index([departmentId])
+  @@map("lecturers")
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Enrollment & registration
+// ─────────────────────────────────────────────────────────────────────────
+
+enum EnrollmentStatus {
+  ACTIVE
+  WITHDRAWN
+  GRADUATED
+}
+
+/// Student ↔ Program, long-lived ("I am enrolled in the BSc Computer Science program").
+/// Distinct from CourseRegistration, which is per-semester. See docs/00 §7.
+model Enrollment {
+  id                  String           @id @default(uuid())
+  studentId           String
+  programId           String
+  curriculumVersionId String
+  status              EnrollmentStatus @default(ACTIVE)
+  startDate           DateTime         @default(now())
+  endDate             DateTime?
+
+  student           Student           @relation(fields: [studentId], references: [id])
+  program           Program           @relation(fields: [programId], references: [id])
+  curriculumVersion CurriculumVersion @relation(fields: [curriculumVersionId], references: [id])
+
+  @@unique([studentId, programId])
+  @@index([studentId])
+  @@map("enrollments")
+}
+
+enum RegistrationStatus {
+  REGISTERED
+  WITHDRAWN // "W" — before deadline, GPA-neutral
+  WITHDRAWN_FAIL // "WF" — after deadline, counts as fail
+  COMPLETED
+}
+
+/// Student ↔ CourseOffering, per-semester ("I am taking CS301 this semester").
+/// Business rules enforced at creation time (docs/00 §8, docs/04 §9):
+///  - prerequisites must be satisfied
+///  - no duplicate active registration for the same offering
+///  - within credit-load band unless advisor-approved
+///  - advisor approval required if student is on probation
+model CourseRegistration {
+  id                  String             @id @default(uuid())
+  studentId           String
+  courseOfferingId    String
+  semesterId          String
+  status              RegistrationStatus @default(REGISTERED)
+  isRetake            Boolean            @default(false)
+  retakeAttemptNumber Int                @default(1)
+  advisorApprovedBy   String?
+  registeredAt        DateTime           @default(now())
+  withdrawnAt         DateTime?
+
+  student        Student        @relation(fields: [studentId], references: [id])
+  courseOffering CourseOffering @relation(fields: [courseOfferingId], references: [id])
+  semester       Semester       @relation(fields: [semesterId], references: [id])
+  courseResult   CourseResult?
+
+  @@unique([studentId, courseOfferingId])
+  @@index([studentId])
+  @@index([courseOfferingId])
+  @@map("course_registrations")
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Delivery & LMS (V1 essentials only — see docs/00 §10)
+// ─────────────────────────────────────────────────────────────────────────
+
+model CourseContent {
+  id               String   @id @default(uuid())
+  courseOfferingId String
+  parentId         String?
+  title            String
+  body             String?
+  orderIndex       Int      @default(0)
+  createdAt        DateTime @default(now())
+
+  parent    CourseContent?  @relation("ContentTree", fields: [parentId], references: [id])
+  children  CourseContent[] @relation("ContentTree")
+  resources Resource[]
+
+  @@index([courseOfferingId])
+  @@map("course_content")
+}
+
+enum ResourceOwnerType {
+  COURSE_CONTENT
+  ASSIGNMENT
+  SUBMISSION
+  APPLICATION
+}
+
+/// One polymorphic file model reused everywhere (course materials, submissions,
+/// application documents) instead of a separate table per feature — see docs/00 B7/B8.
+/// Actual bytes live in object storage; this row is metadata + a storage key.
+model Resource {
+  id              String            @id @default(uuid())
+  ownerType       ResourceOwnerType
+  courseContentId String?
+  submissionId    String?
+  applicationId   String?
+  fileName        String
+  contentType     String
+  sizeBytes       Int
+  storageKey      String
+  uploadedById    String
+  createdAt       DateTime          @default(now())
+
+  courseContent CourseContent? @relation(fields: [courseContentId], references: [id])
+  submission    Submission?    @relation(fields: [submissionId], references: [id])
+  application   Application?   @relation(fields: [applicationId], references: [id])
+
+  @@map("resources")
+}
+
+model Announcement {
+  id               String   @id @default(uuid())
+  courseOfferingId String? // null = university/faculty/department-wide, scope TBD in V2
+  authorId         String
+  title            String
+  body             String
+  createdAt        DateTime @default(now())
+
+  courseOffering CourseOffering? @relation(fields: [courseOfferingId], references: [id])
+
+  @@map("announcements")
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Attendance
+// ─────────────────────────────────────────────────────────────────────────
+
+model AttendanceSession {
+  id               String   @id @default(uuid())
+  courseOfferingId String
+  sessionDate      DateTime
+  createdAt        DateTime @default(now())
+
+  courseOffering CourseOffering     @relation(fields: [courseOfferingId], references: [id])
+  records        AttendanceRecord[]
+
+  @@index([courseOfferingId])
+  @@map("attendance_sessions")
+}
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+  LATE
+  EXCUSED
+}
+
+model AttendanceRecord {
+  id                  String           @id @default(uuid())
+  attendanceSessionId String
+  studentId           String
+  status              AttendanceStatus
+  recordedAt          DateTime         @default(now())
+
+  attendanceSession AttendanceSession @relation(fields: [attendanceSessionId], references: [id])
+  student           Student           @relation(fields: [studentId], references: [id])
+
+  @@unique([attendanceSessionId, studentId])
+  @@index([studentId])
+  @@map("attendance_records")
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Assessment & grading
+// See docs/04-grading-and-academic-policy.md for the concrete policy numbers this
+// schema implements. GradeBand rows ARE the policy §1 table — data, not code.
+// ─────────────────────────────────────────────────────────────────────────
+
+/// One row per letter grade, defining the percentage range and grade-point value.
+/// Configurable so a policy change is a data update — see docs/04 §1.
+model GradeBand {
+  id            String  @id @default(uuid())
+  letter        String  @unique // "A+", "A", "A-", ... "F"
+  minPercentage Decimal @db.Decimal(5, 2)
+  maxPercentage Decimal @db.Decimal(5, 2)
+  gradePoints   Decimal @db.Decimal(3, 2)
+  isPassing     Boolean @default(true)
+
+  @@map("grade_bands")
+}
+
+enum AssessmentType {
+  ASSIGNMENT
+  QUIZ
+  MIDTERM
+  FINAL
+  PRACTICAL
+}
+
+model AssessmentItem {
+  id               String         @id @default(uuid())
+  courseOfferingId String
+  type             AssessmentType
+  title            String
+  weight           Decimal        @db.Decimal(5, 2)
+  maxMarks         Decimal        @db.Decimal(6, 2)
+  dueAt            DateTime?
+  createdAt        DateTime       @default(now())
+
+  courseOffering CourseOffering @relation(fields: [courseOfferingId], references: [id])
+  submissions    Submission[]
+  marks          Mark[]
+
+  @@index([courseOfferingId])
+  @@map("assessment_items")
+}
+
+model Submission {
+  id               String   @id @default(uuid())
+  assessmentItemId String
+  studentId        String
+  submittedAt      DateTime @default(now())
+  isLate           Boolean  @default(false)
+  content          String?
+
+  assessmentItem AssessmentItem @relation(fields: [assessmentItemId], references: [id])
+  student        Student        @relation(fields: [studentId], references: [id])
+  resources      Resource[]
+  mark           Mark?
+
+  @@unique([assessmentItemId, studentId])
+  @@map("submissions")
+}
+
+enum MarkStatus {
+  PROVISIONAL
+  MODERATED
+  LOCKED
+}
+
+/// The raw score for one student on one AssessmentItem. Only the assigned Lecturer for
+/// the parent CourseOffering may create/edit — enforced server-side, see docs/00 §8 rule 4.
+model Mark {
+  id               String     @id @default(uuid())
+  assessmentItemId String
+  studentId        String
+  submissionId     String?    @unique
+  score            Decimal    @db.Decimal(6, 2)
+  status           MarkStatus @default(PROVISIONAL)
+  enteredById      String
+  enteredAt        DateTime   @default(now())
+
+  assessmentItem AssessmentItem @relation(fields: [assessmentItemId], references: [id])
+  submission     Submission?    @relation(fields: [submissionId], references: [id])
+
+  @@unique([assessmentItemId, studentId])
+  @@map("marks")
+}
+
+enum ResultStatus {
+  DRAFT
+  SUBMITTED
+  APPROVED
+  PUBLISHED
+}
+
+/// The aggregated, weighted result for a Student in a CourseOffering — computed from
+/// Marks per the course's weights, NOT directly editable once PUBLISHED (docs/00 §8 rule 5).
+/// A grade change after publication must go through GradeChangeRequest.
+model CourseResult {
+  id                   String       @id @default(uuid())
+  courseRegistrationId String       @unique
+  computedPercentage   Decimal      @db.Decimal(5, 2)
+  /// Percentage actually used for the letter/GPA lookup — for a capped retake this differs
+  /// from computedPercentage (capped at the pass-mark band). See docs/04 §4.
+  countedPercentage    Decimal      @db.Decimal(5, 2)
+  letterGrade          String
+  gradePoints          Decimal      @db.Decimal(3, 2)
+  status               ResultStatus @default(DRAFT)
+  submittedById        String?
+  submittedAt          DateTime?
+  approvedById         String?
+  approvedAt           DateTime?
+  publishedAt          DateTime?
+
+  courseRegistration  CourseRegistration   @relation(fields: [courseRegistrationId], references: [id])
+  gradeChangeRequests GradeChangeRequest[]
+
+  @@map("course_results")
+}
+
+/// Every edit to a published result goes through this — never a silent overwrite.
+/// See docs/00 §5 (dangerous permission conflict #4) and §8 rule 5.
+model GradeChangeRequest {
+  id             String    @id @default(uuid())
+  courseResultId String
+  requestedById  String
+  reason         String
+  oldPercentage  Decimal   @db.Decimal(5, 2)
+  newPercentage  Decimal   @db.Decimal(5, 2)
+  approvedById   String?
+  approvedAt     DateTime?
+  status         String    @default("PENDING") // PENDING | APPROVED | DENIED
+  createdAt      DateTime  @default(now())
+
+  courseResult CourseResult @relation(fields: [courseResultId], references: [id])
+
+  @@map("grade_change_requests")
+}
+
+/// Immutable-once-written academic history — deliberately decoupled from CourseResult so
+/// deleting/changing a CourseOffering or Lecturer can never affect a student's historical
+/// record. This is what transcripts are built from. See docs/00 §7.
+model AcademicRecordEntry {
+  id               String   @id @default(uuid())
+  studentId        String
+  courseCode       String
+  courseTitle      String
+  credits          Int
+  letterGrade      String
+  gradePoints      Decimal  @db.Decimal(3, 2)
+  semesterName     String // denormalized on purpose — must outlive the Semester row's lifecycle intent
+  recordedAt       DateTime @default(now())
+  /// Retention/consent governance — see docs/00 §7 "Compliance & consent" and §13.
+  retentionClassId String?
+
+  student Student @relation(fields: [studentId], references: [id])
+
+  @@index([studentId])
+  @@map("academic_record_entries")
+}
+
+model GpaRecord {
+  id            String   @id @default(uuid())
+  studentId     String
+  semesterId    String? // null = cumulative (CGPA) snapshot
+  semesterGpa   Decimal? @db.Decimal(3, 2)
+  cumulativeGpa Decimal  @db.Decimal(3, 2)
+  computedAt    DateTime @default(now())
+
+  student  Student   @relation(fields: [studentId], references: [id])
+  semester Semester? @relation(fields: [semesterId], references: [id])
+
+  @@index([studentId])
+  @@map("gpa_records")
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Admissions (docs/00 item A1 — confirmed in scope, docs/04 §14)
+// ─────────────────────────────────────────────────────────────────────────
+
+enum ApplicationStatus {
+  SUBMITTED
+  UNDER_REVIEW
+  OFFERED
+  ACCEPTED
+  REJECTED
+  WITHDRAWN
+}
+
+model Application {
+  id           String            @id @default(uuid())
+  programId    String
+  firstName    String
+  lastName     String
+  email        String
+  dateOfBirth  DateTime
+  status       ApplicationStatus @default(SUBMITTED)
+  reviewedById String?
+  decisionAt   DateTime?
+  studentId    String?           @unique // set once converted to a Student on acceptance
+  createdAt    DateTime          @default(now())
+
+  program   Program    @relation(fields: [programId], references: [id])
+  student   Student?   @relation(fields: [studentId], references: [id])
+  resources Resource[]
+
+  @@map("applications")
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Compliance & consent — Somalia Data Protection Act No. 005/2023
+// See docs/00 §7 "Compliance & consent" and §13.
+// ─────────────────────────────────────────────────────────────────────────
+
+model RetentionClass {
+  id          String @id @default(uuid())
+  code        String @unique // e.g. "academic-record-permanent", "applicant-data-2y"
+  description String
+  legalBasis  String
+  retainYears Int? // null = indefinite, per legalBasis
+
+  @@map("retention_classes")
+}
+
+enum ConsentType {
+  TERMS_OF_SERVICE
+  GUARDIAN_CONSENT
+  DATA_TRANSFER_DEROGATION
+}
+
+/// Who consented (self or guardian), to what, when, with a reference to stored proof.
+/// A guardian ConsentRecord is required before an underage Application may proceed
+/// past intake — enforced in Admissions business logic, see docs/00 §8 rule 13.
+model ConsentRecord {
+  id              String      @id @default(uuid())
+  userId          String?
+  applicationId   String?
+  type            ConsentType
+  consentedBySelf Boolean     @default(true)
+  guardianName    String?
+  guardianEmail   String?
+  proofReference  String?
+  consentedAt     DateTime    @default(now())
+
+  user User? @relation(fields: [userId], references: [id])
+
+  @@map("consent_records")
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Support
+// ─────────────────────────────────────────────────────────────────────────
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  title     String
+  body      String
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@map("notifications")
+}
+
+/// Append-only. Every sensitive action (grade change, result publication, role change,
+/// deletion) is recorded here — see docs/00 §8 rule and §9 security audit.
+model AuditLog {
+  id         String   @id @default(uuid())
+  actorId    String?
+  action     String
+  targetType String
+  targetId   String
+  beforeData Json?
+  afterData  Json?
+  ipAddress  String?
+  createdAt  DateTime @default(now())
+
+  actor User? @relation("AuditActor", fields: [actorId], references: [id])
+
+  @@index([targetType, targetId])
+  @@index([actorId])
+  @@map("audit_logs")
+}

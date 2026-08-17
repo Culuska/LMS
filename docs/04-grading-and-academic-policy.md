@@ -41,12 +41,14 @@ Weights vary by course/department **within university-set bands**, so the gradin
 | Component | Allowed band | Default (if department doesn't specify) |
 |---|---|---|
 | Continuous assessment (quizzes, assignments, labs) | 30–50% | 40% |
-| Midterm | 15–25% | 25% |
-| Final exam | 40–60% | 35% |
+| Midterm | 15–25% | 20% |
+| Final exam | 40–60% | 40% |
 
 The system enforces that a course's actual weights (i) fall within these bands and (ii) sum to exactly 100% before that course's grading can be marked complete (this was already data-integrity rule §8.9 in the main audit; the bands/default above are the concrete numbers that rule now references).
 
-*Note: the default row (40/25/35) sums to 100 as shown; if a department customizes any one component, the other two must be adjusted so the total still reaches 100% — the engine validates this, it doesn't auto-balance for you.*
+**Correction (2026-08-17):** the default was originally recorded as 40/25/35 (matching your suggestion), but 35% for the Final component falls below the Final band's own 40% floor stated in the same section — the two numbers in your answer were mutually inconsistent. This surfaced when the grading engine's automated tests (`backend/src/grading/grading.util.spec.ts`) were written against both numbers and failed. Corrected to 40/20/40, which sums to 100% and satisfies all three bands — but the Midterm and Final proportions are now different from what you specified, so it's worth a second look. If a different combination fits your intent better, it's a one-line constant change in `backend/src/grading/grading.constants.ts`, not a redesign.
+
+*Note: if a department customizes any one component, the other two must be adjusted so the total still reaches 100% — the engine validates this, it doesn't auto-balance for you.*
 
 ## 4. Retakes
 

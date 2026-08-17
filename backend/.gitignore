@@ -1,0 +1,25 @@
+# compiled output
+/dist
+/generated/prisma
+
+# dependencies
+/node_modules
+
+# environment variables — never commit real secrets
+.env
+.env.*.local
+
+# testing
+/coverage
+
+# logs
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS / editor
+.DS_Store
+.idea
+.vscode/*
+!.vscode/extensions.json
