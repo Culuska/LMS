@@ -1,4 +1,11 @@
-import { Body, Controller, Post } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  ParseUUIDPipe,
+  Post,
+} from '@nestjs/common';
 import { RoleName } from '@prisma/client';
 import { CourseRegistrationsService } from './course-registrations.service';
 import { CreateCourseRegistrationDto } from './dto/create-course-registration.dto';
@@ -9,6 +16,22 @@ import type { AuthenticatedUser } from '../auth/strategies/jwt.strategy';
 @Controller('course-registrations')
 export class CourseRegistrationsController {
   constructor(private readonly service: CourseRegistrationsService) {}
+
+  @Roles(RoleName.STUDENT)
+  @Get('mine')
+  findMine(@CurrentUser() user: AuthenticatedUser) {
+    return this.service.findMine(user.id);
+  }
+
+  // The roster for one offering — its own lecturer (or admin), used for the gradebook.
+  @Roles(RoleName.LECTURER, RoleName.SUPER_ADMIN, RoleName.REGISTRAR)
+  @Get('offering/:offeringId')
+  findForOffering(
+    @Param('offeringId', ParseUUIDPipe) offeringId: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.service.findForOffering(offeringId, user);
+  }
 
   // Registrar/Advisor/Super Admin register on a student's behalf; STUDENT self-service
   // is also allowed — the service resolves and enforces the caller's own studentId when

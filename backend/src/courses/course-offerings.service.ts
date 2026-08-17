@@ -20,6 +20,20 @@ export class CourseOfferingsService {
     });
   }
 
+  async findMine(userId: string) {
+    const lecturer = await this.prisma.lecturer.findUnique({
+      where: { userId },
+    });
+    if (!lecturer) {
+      return [];
+    }
+    return this.prisma.courseOffering.findMany({
+      where: { lecturerId: lecturer.id },
+      include: { course: true, semester: { include: { academicYear: true } } },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
   async findOne(id: string) {
     const offering = await this.prisma.courseOffering.findUnique({
       where: { id },

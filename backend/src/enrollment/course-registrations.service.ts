@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import { RoleName } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { OfferingAccessService } from '../common/offering-access.service';
 import { CreateCourseRegistrationDto } from './dto/create-course-registration.dto';
 import { COURSE_LOAD, RETAKE_POLICY } from '../grading';
 import type { AuthenticatedUser } from '../auth/strategies/jwt.strategy';
@@ -25,7 +26,43 @@ const STAFF_ROLES: RoleName[] = [
  */
 @Injectable()
 export class CourseRegistrationsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly offeringAccess: OfferingAccessService,
+  ) {}
+
+  async findMine(userId: string) {
+    const student = await this.prisma.student.findUnique({ where: { userId } });
+    if (!student) {
+      return [];
+    }
+    return this.prisma.courseRegistration.findMany({
+      where: { studentId: student.id },
+      include: {
+        courseOffering: {
+          include: { course: true, lecturer: { include: { user: true } } },
+        },
+        courseResult: true,
+      },
+      orderBy: { registeredAt: 'desc' },
+    });
+  }
+
+  async findForOffering(offeringId: string, user: AuthenticatedUser) {
+    await this.offeringAccess.assertCanManageOffering(offeringId, user);
+    return this.prisma.courseRegistration.findMany({
+      where: { courseOfferingId: offeringId },
+      include: {
+        student: {
+          include: {
+            user: { select: { firstName: true, lastName: true, email: true } },
+          },
+        },
+        courseResult: true,
+      },
+      orderBy: { registeredAt: 'asc' },
+    });
+  }
 
   async create(dto: CreateCourseRegistrationDto, user: AuthenticatedUser) {
     const studentId = await this.resolveTargetStudentId(dto.studentId, user);

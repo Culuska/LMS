@@ -17,6 +17,10 @@ export interface AuthenticatedUser {
   lastName: string;
   roles: RoleName[];
   mustChangePassword: boolean;
+  /** Present only if this account has a Student/Lecturer profile — lets the frontend
+   * make self-referential calls (e.g. "my transcript") without a separate profile lookup. */
+  studentId?: string;
+  lecturerId?: string;
 }
 
 @Injectable()
@@ -41,7 +45,11 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   async validate(payload: JwtPayload): Promise<AuthenticatedUser> {
     const user = await this.prisma.user.findUnique({
       where: { id: payload.sub },
-      include: { roles: true },
+      include: {
+        roles: true,
+        studentRecord: { select: { id: true } },
+        lecturerRecord: { select: { id: true } },
+      },
     });
 
     if (!user || !user.isActive) {
@@ -57,6 +65,8 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       lastName: user.lastName,
       roles: user.roles.map((r) => r.role),
       mustChangePassword: user.mustChangePassword,
+      studentId: user.studentRecord?.id,
+      lecturerId: user.lecturerRecord?.id,
     };
   }
 }

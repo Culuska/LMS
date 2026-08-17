@@ -28,7 +28,11 @@ export class AuthService {
   async login(email: string, password: string): Promise<LoginResult> {
     const user = await this.prisma.user.findUnique({
       where: { email: email.toLowerCase() },
-      include: { roles: true },
+      include: {
+        roles: true,
+        studentRecord: { select: { id: true } },
+        lecturerRecord: { select: { id: true } },
+      },
     });
 
     // Deliberately identical error for "no such user" and "wrong password" — do not
@@ -52,6 +56,8 @@ export class AuthService {
       lastName: user.lastName,
       roles: user.roles.map((r) => r.role),
       mustChangePassword: user.mustChangePassword,
+      studentId: user.studentRecord?.id,
+      lecturerId: user.lecturerRecord?.id,
     };
 
     const accessToken = await this.jwtService.signAsync({
