@@ -1,0 +1,19 @@
+{
+  // Cloudflare Workers config for the BaroTech frontend. This is a pure static
+  // single-page app (Vite + React) with no server-side Worker logic, so it's
+  // deployed as a "static assets" Worker: no `main` entry script, just the
+  // built dist/ folder served directly by Cloudflare's edge.
+  //
+  // `name` must match the Worker project name set in the Cloudflare dashboard
+  // (Workers & Pages -> Create -> connect this repo) or Workers Builds will
+  // refuse to deploy — see https://developers.cloudflare.com/workers/ci-cd/builds/#connect-an-existing-worker
+  "name": "barotech",
+  "compatibility_date": "2026-08-18",
+  "assets": {
+    "directory": "./dist",
+    // React Router uses client-side routing (BrowserRouter), so a direct load
+    // or refresh on any non-root path (e.g. /login) needs to still resolve to
+    // index.html and let the router take over, instead of a 404 from the edge.
+    "not_found_handling": "single-page-application"
+  }
+}
