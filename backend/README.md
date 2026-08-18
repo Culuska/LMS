@@ -81,10 +81,19 @@ not just "compiles"):
   so it can't be used to enumerate accounts) and an authenticated `change-password` that
   clears `mustChangePassword` — the flow the temporary-password-at-account-creation stopgap
   needed to actually be resolvable by the account holder, not just documented as needed.
-- **Email abstraction** (`src/email/`) — an `EmailService` every password/account flow now
-  goes through, with a console-log stub implementation. Swapping in a real provider (SES/
-  Postmark/etc.) is a one-line change (`useClass` in `EmailModule`); nothing that calls it
-  needs to change. Still not real delivery — flagged in the module itself.
+- **Email delivery** (`src/email/`) — every password/account flow goes through the
+  `EmailService` abstraction. Two implementations: `ConsoleEmailService` (logs instead of
+  sending — used automatically whenever `RESEND_API_KEY` isn't set, so local dev needs no
+  credentials) and `ResendEmailService` (real delivery via [Resend](https://resend.com)'s
+  HTTP API — selected automatically the moment that env var is set). `EmailModule`
+  chooses between them with a factory, so nothing that calls `EmailService` had to
+  change. Send failures are logged, not thrown — a broken email provider shouldn't turn
+  into a 500 on password reset, and doing so would also leak account-existence
+  information. Verified live: default (no key) path still round-trips through
+  `smoke-test-auth.sh`'s console-log token extraction unchanged; with an (invalid, for
+  the test) `RESEND_API_KEY` set, the server starts, selects `ResendEmailService`, the
+  outbound call fails, and the request still returns its normal 200 — the failure only
+  shows up in the server log, exactly as designed.
 
 - **Course content** (`src/lms/course-content.service.ts`) — nested text/markdown
   materials (modules → lessons) per offering; the offering's own lecturer (or admin) can
@@ -141,9 +150,6 @@ not just "compiles"):
 
 ## What is NOT implemented yet (do not assume otherwise)
 
-- **Real email delivery.** The `EmailService` abstraction exists and everything routes
-  through it, but the only implementation logs to the console — no real users can receive
-  a password reset or their temporary password until a provider is wired in.
 - **File uploads / object storage.** `Resource` exists in the schema (polymorphic file
   metadata) but there's no upload endpoint and no storage backend decision made
   (docs/00 §14) — course content is text/markdown only right now.
