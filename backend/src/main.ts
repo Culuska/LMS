@@ -1,9 +1,27 @@
 import { NestFactory } from '@nestjs/core';
-import { ValidationPipe } from '@nestjs/common';
+import { Logger, ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
+import { PrismaService } from './prisma/prisma.service';
+import { applyBaselineSeed } from './prisma/baseline-seed';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+
+  // Ensures grade bands + a Super Admin account exist before the app starts accepting
+  // traffic — see baseline-seed.ts for why this runs on every boot rather than as a
+  // separate one-off step (in short: some hosting platforms don't give free-tier
+  // services a shell to run a one-off command in, and a fresh database with no way to
+  // log in is a dead end either way). Idempotent; a failure here is logged, not fatal —
+  // an already-seeded production database should keep serving even if this one check
+  // has a transient hiccup.
+  try {
+    await applyBaselineSeed(app.get(PrismaService));
+  } catch (err) {
+    new Logger('BaselineSeed').error(
+      'Baseline seed failed on boot',
+      err instanceof Error ? err.stack : err,
+    );
+  }
 
   // Reject unknown/malformed request bodies rather than silently accepting them —
   // see docs/00-requirements-audit.md §12 (input validation).
