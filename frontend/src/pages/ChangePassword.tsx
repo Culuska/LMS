@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api, ApiError } from '../api/client';
 import { useAuth } from '../auth/useAuth';
+import { IconAlertCircle } from '../components/icons';
 
 /** Reachable two ways: forced (AppLayout redirects here whenever
  * user.mustChangePassword is true, e.g. right after account creation with a temporary
@@ -40,56 +41,86 @@ export function ChangePassword() {
 
   return (
     <div className="login-page">
-      <form className="login-form" onSubmit={submit}>
-        <h1>{forced ? 'Set a new password' : 'Change password'}</h1>
-        {forced && (
-          <p>
-            You're signed in with a temporary password. Choose a new one before
-            continuing.
-          </p>
-        )}
-        <label>
-          Current password
-          <input
-            type="password"
-            value={currentPassword}
-            onChange={(e) => setCurrentPassword(e.target.value)}
-            required
-          />
-        </label>
-        <label>
-          New password
-          <input
-            type="password"
-            value={newPassword}
-            onChange={(e) => setNewPassword(e.target.value)}
-            required
-            minLength={8}
-          />
-        </label>
-        <label>
-          Confirm new password
-          <input
-            type="password"
-            value={confirmPassword}
-            onChange={(e) => setConfirmPassword(e.target.value)}
-            required
-            minLength={8}
-          />
-        </label>
-        {error && <p className="error">{error}</p>}
-        <button type="submit" disabled={submitting}>
-          {submitting ? 'Saving…' : 'Save new password'}
-        </button>
-        {!forced && (
-          <button type="button" onClick={() => navigate(-1)}>
-            Cancel
+      <div className="login-shell">
+        <div className="login-brand">
+          <span className="app-brand-mark" style={{ width: '2.6rem', height: '2.6rem', fontSize: '1.15rem' }} aria-hidden="true">
+            B
+          </span>
+          <span className="app-brand-name" style={{ fontSize: '1.3rem' }}>
+            BaroTech
+          </span>
+        </div>
+
+        <form className="login-form" onSubmit={submit}>
+          <div>
+            <h1>{forced ? 'Set a new password' : 'Change password'}</h1>
+            {forced && (
+              <p className="lede">You're signed in with a temporary password. Choose a new one to continue.</p>
+            )}
+          </div>
+
+          <label htmlFor="cp-current">
+            Current password
+            <input
+              id="cp-current"
+              type="password"
+              value={currentPassword}
+              onChange={(e) => setCurrentPassword(e.target.value)}
+              required
+              autoComplete="current-password"
+            />
+          </label>
+          <label htmlFor="cp-new">
+            New password
+            <input
+              id="cp-new"
+              type="password"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              required
+              minLength={8}
+              autoComplete="new-password"
+              aria-describedby="cp-new-hint"
+            />
+            <span id="cp-new-hint" className="field-hint">
+              At least 8 characters.
+            </span>
+          </label>
+          <label htmlFor="cp-confirm">
+            Confirm new password
+            <input
+              id="cp-confirm"
+              type="password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              required
+              minLength={8}
+              autoComplete="new-password"
+            />
+          </label>
+
+          {error && (
+            <p className="error" role="alert">
+              <IconAlertCircle style={{ width: '1rem', height: '1rem', flexShrink: 0, marginTop: '0.1rem' }} />
+              <span>{error}</span>
+            </p>
+          )}
+
+          <button type="submit" className="btn btn-primary" disabled={submitting}>
+            {submitting ? 'Saving…' : 'Save new password'}
           </button>
-        )}
-        <button type="button" onClick={logout}>
-          Sign out instead
-        </button>
-      </form>
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
+            {!forced && (
+              <button type="button" className="btn btn-secondary" style={{ flex: 1 }} onClick={() => navigate(-1)}>
+                Cancel
+              </button>
+            )}
+            <button type="button" className="btn btn-ghost" style={{ flex: 1 }} onClick={logout}>
+              Sign out instead
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   );
 }

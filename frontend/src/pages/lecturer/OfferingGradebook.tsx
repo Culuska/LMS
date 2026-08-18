@@ -3,8 +3,18 @@ import { useParams } from 'react-router-dom';
 import { api, ApiError } from '../../api/client';
 import { useAuth } from '../../auth/useAuth';
 import type { AssessmentItem, AssessmentType, CourseResult, Mark, RosterEntry } from '../../types/domain';
+import { PageHeader } from '../../components/PageHeader';
+import { EmptyState, Loading } from '../../components/StateViews';
+import { IconUsers } from '../../components/icons';
 
 const ASSESSMENT_TYPES: AssessmentType[] = ['ASSIGNMENT', 'QUIZ', 'MIDTERM', 'FINAL', 'PRACTICAL'];
+
+const RESULT_CHIP: Record<CourseResult['status'], string> = {
+  DRAFT: 'chip-neutral',
+  SUBMITTED: 'chip-warn',
+  APPROVED: 'chip-warn',
+  PUBLISHED: 'chip-ok',
+};
 
 /** Lecturer/admin gradebook for one course offering: define assessment items, enter
  * marks per student per item, then drive each student's result through the
@@ -56,7 +66,7 @@ export function OfferingGradebook() {
     load();
   }, [load]);
 
-  if (!offeringId) return <p className="error">Missing offering id.</p>;
+  if (!offeringId) return <p className="error" role="alert">Missing offering id.</p>;
 
   const saveMark = async (itemId: string, studentId: string, score: string) => {
     if (score === '' || Number.isNaN(Number(score))) return;
@@ -111,132 +121,190 @@ export function OfferingGradebook() {
 
   return (
     <div>
-      <h1>Gradebook</h1>
-      {error && <p className="error">{error}</p>}
-      {actionError && <p className="error">{actionError}</p>}
+      <PageHeader
+        title="Gradebook"
+        subtitle="Define assessment items, enter marks, then move each result through review to publication."
+        crumbs={[
+          { label: 'Dashboard', to: '/dashboard' },
+          { label: 'My Offerings', to: '/my-offerings' },
+          { label: 'Gradebook' },
+        ]}
+      />
+      {error && <p className="error" role="alert">{error}</p>}
+      {actionError && <p className="error" role="alert">{actionError}</p>}
 
       {!roster || !items ? (
-        <p>Loading…</p>
+        <Loading label="Loading gradebook…" />
       ) : (
         <>
-          <h2>Assessment Items</h2>
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>Type</th>
-                <th>Title</th>
-                <th>Weight %</th>
-                <th>Max Marks</th>
-              </tr>
-            </thead>
-            <tbody>
-              {items.map((i) => (
-                <tr key={i.id}>
-                  <td>{i.type}</td>
-                  <td>{i.title}</td>
-                  <td>{i.weight}</td>
-                  <td>{i.maxMarks}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-
-          <form className="inline-form" onSubmit={createItem}>
-            <select value={newItem.type} onChange={(e) => setNewItem({ ...newItem, type: e.target.value as AssessmentType })}>
-              {ASSESSMENT_TYPES.map((t) => (
-                <option key={t} value={t}>
-                  {t}
-                </option>
-              ))}
-            </select>
-            <input
-              placeholder="Title"
-              value={newItem.title}
-              onChange={(e) => setNewItem({ ...newItem, title: e.target.value })}
-              required
-            />
-            <input
-              placeholder="Weight %"
-              type="number"
-              step="0.01"
-              value={newItem.weight}
-              onChange={(e) => setNewItem({ ...newItem, weight: e.target.value })}
-              required
-            />
-            <input
-              placeholder="Max marks"
-              type="number"
-              value={newItem.maxMarks}
-              onChange={(e) => setNewItem({ ...newItem, maxMarks: e.target.value })}
-              required
-            />
-            <button type="submit">Add item</button>
-          </form>
-
-          <h2>Marks &amp; Results</h2>
-          {roster.length === 0 ? (
-            <p>No students registered yet.</p>
-          ) : (
+          <h2 style={{ marginBottom: 'var(--space-3)' }}>Assessment items</h2>
+          <div className="table-scroll">
             <table className="data-table">
               <thead>
                 <tr>
-                  <th>Student</th>
-                  {items.map((i) => (
-                    <th key={i.id}>{i.title}</th>
-                  ))}
-                  <th>Result</th>
-                  <th></th>
+                  <th>Type</th>
+                  <th>Title</th>
+                  <th className="num">Weight %</th>
+                  <th className="num">Max marks</th>
                 </tr>
               </thead>
               <tbody>
-                {roster.map((r) => {
-                  const result: CourseResult | null = r.courseResult;
-                  return (
-                    <tr key={r.id}>
-                      <td>
-                        {r.student.user.firstName} {r.student.user.lastName} ({r.student.studentNumber})
-                      </td>
-                      {items.map((i) => (
-                        <td key={i.id}>
-                          <input
-                            type="number"
-                            className="mark-input"
-                            defaultValue={marks[i.id]?.[r.student.id] ?? ''}
-                            disabled={busy === `${i.id}:${r.student.id}`}
-                            onBlur={(e) => void saveMark(i.id, r.student.id, e.target.value)}
-                          />
-                        </td>
-                      ))}
-                      <td>
-                        {result ? `${result.status}: ${result.letterGrade} (${result.countedPercentage}%)` : '—'}
-                      </td>
-                      <td className="action-cell">
-                        {(!result || result.status === 'DRAFT') && (
-                          <button disabled={busy === r.id} onClick={() => void runAction('compute', r.id)}>
-                            Compute
-                          </button>
-                        )}
-                        {result?.status === 'DRAFT' && (
-                          <button disabled={busy === r.id} onClick={() => void runAction('submit', r.id, result.id)}>
-                            Submit
-                          </button>
-                        )}
-                        {result?.status === 'SUBMITTED' && canApprove && (
-                          <button disabled={busy === r.id} onClick={() => void runAction('approve', r.id, result.id)}>
-                            Approve
-                          </button>
-                        )}
-                        {result?.status === 'APPROVED' && canPublish && (
-                          <button disabled={busy === r.id} onClick={() => void runAction('publish', r.id, result.id)}>
-                            Publish
-                          </button>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
+                {items.map((i) => (
+                  <tr key={i.id}>
+                    <td>{i.type}</td>
+                    <td>{i.title}</td>
+                    <td className="num">{i.weight}</td>
+                    <td className="num">{i.maxMarks}</td>
+                  </tr>
+                ))}
               </tbody>
             </table>
+          </div>
+
+          <form className="inline-form" onSubmit={createItem} aria-label="Add assessment item">
+            <label>
+              Type
+              <select
+                value={newItem.type}
+                onChange={(e) => setNewItem({ ...newItem, type: e.target.value as AssessmentType })}
+              >
+                {ASSESSMENT_TYPES.map((t) => (
+                  <option key={t} value={t}>
+                    {t}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              Title
+              <input
+                placeholder="Title"
+                value={newItem.title}
+                onChange={(e) => setNewItem({ ...newItem, title: e.target.value })}
+                required
+              />
+            </label>
+            <label>
+              Weight %
+              <input
+                placeholder="Weight %"
+                type="number"
+                step="0.01"
+                value={newItem.weight}
+                onChange={(e) => setNewItem({ ...newItem, weight: e.target.value })}
+                required
+              />
+            </label>
+            <label>
+              Max marks
+              <input
+                placeholder="Max marks"
+                type="number"
+                value={newItem.maxMarks}
+                onChange={(e) => setNewItem({ ...newItem, maxMarks: e.target.value })}
+                required
+              />
+            </label>
+            <button type="submit" className="btn btn-primary">
+              Add item
+            </button>
+          </form>
+
+          <h2 style={{ margin: 'var(--space-6) 0 var(--space-3)' }}>Marks &amp; results</h2>
+          {roster.length === 0 ? (
+            <EmptyState icon={<IconUsers />} title="No students registered yet" description="Once students register for this offering, they'll appear here." />
+          ) : (
+            <div className="table-scroll">
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>Student</th>
+                    {items.map((i) => (
+                      <th key={i.id}>{i.title}</th>
+                    ))}
+                    <th>Result</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {roster.map((r) => {
+                    const result: CourseResult | null = r.courseResult;
+                    return (
+                      <tr key={r.id}>
+                        <td>
+                          {r.student.user.firstName} {r.student.user.lastName}{' '}
+                          <span className="mono" style={{ color: 'var(--color-ink-faint)' }}>
+                            ({r.student.studentNumber})
+                          </span>
+                        </td>
+                        {items.map((i) => (
+                          <td key={i.id}>
+                            <label className="sr-only" htmlFor={`mark-${i.id}-${r.student.id}`}>
+                              {i.title} mark for {r.student.user.firstName} {r.student.user.lastName}
+                            </label>
+                            <input
+                              id={`mark-${i.id}-${r.student.id}`}
+                              type="number"
+                              className="mark-input"
+                              defaultValue={marks[i.id]?.[r.student.id] ?? ''}
+                              disabled={busy === `${i.id}:${r.student.id}`}
+                              onBlur={(e) => void saveMark(i.id, r.student.id, e.target.value)}
+                            />
+                          </td>
+                        ))}
+                        <td>
+                          {result ? (
+                            <span className={`chip ${RESULT_CHIP[result.status]}`}>
+                              {result.status.toLowerCase()} · {result.letterGrade} ({result.countedPercentage}%)
+                            </span>
+                          ) : (
+                            <span className="chip chip-neutral">no marks yet</span>
+                          )}
+                        </td>
+                        <td className="action-cell">
+                          {(!result || result.status === 'DRAFT') && (
+                            <button
+                              className="btn btn-secondary btn-sm"
+                              disabled={busy === r.id}
+                              onClick={() => void runAction('compute', r.id)}
+                            >
+                              Compute
+                            </button>
+                          )}
+                          {result?.status === 'DRAFT' && (
+                            <button
+                              className="btn btn-secondary btn-sm"
+                              disabled={busy === r.id}
+                              onClick={() => void runAction('submit', r.id, result.id)}
+                            >
+                              Submit
+                            </button>
+                          )}
+                          {result?.status === 'SUBMITTED' && canApprove && (
+                            <button
+                              className="btn btn-secondary btn-sm"
+                              disabled={busy === r.id}
+                              onClick={() => void runAction('approve', r.id, result.id)}
+                            >
+                              Approve
+                            </button>
+                          )}
+                          {result?.status === 'APPROVED' && canPublish && (
+                            <button
+                              className="btn btn-primary btn-sm"
+                              disabled={busy === r.id}
+                              onClick={() => void runAction('publish', r.id, result.id)}
+                            >
+                              Publish
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           )}
         </>
       )}

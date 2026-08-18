@@ -1,8 +1,20 @@
 import { useEffect, useState } from 'react';
 import { api, ApiError } from '../../api/client';
 import type { Application, ApplicationStatus } from '../../types/domain';
+import { PageHeader } from '../../components/PageHeader';
+import { EmptyState, Loading } from '../../components/StateViews';
+import { IconClipboard } from '../../components/icons';
 
 const REVIEWABLE_STATUSES: ApplicationStatus[] = ['UNDER_REVIEW', 'OFFERED', 'REJECTED', 'WITHDRAWN'];
+
+const STATUS_CHIP: Record<ApplicationStatus, string> = {
+  SUBMITTED: 'chip-neutral',
+  UNDER_REVIEW: 'chip-warn',
+  OFFERED: 'chip-warn',
+  ACCEPTED: 'chip-ok',
+  REJECTED: 'chip-danger',
+  WITHDRAWN: 'chip-danger',
+};
 
 /** Admissions review queue. Deliberately excludes ACCEPTED from the status dropdown —
  * that transition only happens via the dedicated "Accept" action, which converts the
@@ -51,61 +63,74 @@ export function Applications() {
 
   return (
     <div>
-      <h1>Applications</h1>
-      {error && <p className="error">{error}</p>}
+      <PageHeader
+        title="Applications"
+        subtitle="Review admissions applications and move each one through the decision workflow."
+        crumbs={[{ label: 'Dashboard', to: '/dashboard' }, { label: 'Applications' }]}
+      />
+      {error && <p className="error" role="alert">{error}</p>}
       <div className="tab-bar">
-        <button className={filter === '' ? 'tab-active' : ''} onClick={() => setFilter('')}>
+        <button className={filter === '' ? 'tab-active' : ''} aria-pressed={filter === ''} onClick={() => setFilter('')}>
           All
         </button>
         {(['SUBMITTED', 'UNDER_REVIEW', 'OFFERED', 'ACCEPTED', 'REJECTED', 'WITHDRAWN'] as ApplicationStatus[]).map((s) => (
-          <button key={s} className={filter === s ? 'tab-active' : ''} onClick={() => setFilter(s)}>
-            {s}
+          <button key={s} className={filter === s ? 'tab-active' : ''} aria-pressed={filter === s} onClick={() => setFilter(s)}>
+            {s.replace('_', ' ')}
           </button>
         ))}
       </div>
 
       {!applications ? (
-        <p>Loading…</p>
+        <Loading label="Loading applications…" />
       ) : applications.length === 0 ? (
-        <p>No applications match this filter.</p>
+        <EmptyState icon={<IconClipboard />} title="No applications match this filter" description="Try a different status filter above." />
       ) : (
-        <table className="data-table">
-          <thead>
-            <tr>
-              <th>Name</th>
-              <th>Email</th>
-              <th>DOB</th>
-              <th>Guardian</th>
-              <th>Status</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            {applications.map((a) => (
-              <tr key={a.id}>
-                <td>
-                  {a.firstName} {a.lastName}
-                </td>
-                <td>{a.email}</td>
-                <td>{a.dateOfBirth.slice(0, 10)}</td>
-                <td>{a.guardianName ?? '—'}</td>
-                <td>{a.status}</td>
-                <td className="action-cell">
-                  {REVIEWABLE_STATUSES.map((s) => (
-                    <button key={s} disabled={busy === a.id || a.status === s} onClick={() => void changeStatus(a.id, s)}>
-                      {s}
-                    </button>
-                  ))}
-                  {a.status === 'OFFERED' && (
-                    <button disabled={busy === a.id} onClick={() => void accept(a.id)}>
-                      Accept
-                    </button>
-                  )}
-                </td>
+        <div className="table-scroll">
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Date of birth</th>
+                <th>Guardian</th>
+                <th>Status</th>
+                <th></th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {applications.map((a) => (
+                <tr key={a.id}>
+                  <td>
+                    {a.firstName} {a.lastName}
+                  </td>
+                  <td>{a.email}</td>
+                  <td>{a.dateOfBirth.slice(0, 10)}</td>
+                  <td>{a.guardianName ?? '—'}</td>
+                  <td>
+                    <span className={`chip ${STATUS_CHIP[a.status]}`}>{a.status.replace('_', ' ').toLowerCase()}</span>
+                  </td>
+                  <td className="action-cell">
+                    {REVIEWABLE_STATUSES.map((s) => (
+                      <button
+                        key={s}
+                        className="btn btn-secondary btn-sm"
+                        disabled={busy === a.id || a.status === s}
+                        onClick={() => void changeStatus(a.id, s)}
+                      >
+                        {s.replace('_', ' ').toLowerCase()}
+                      </button>
+                    ))}
+                    {a.status === 'OFFERED' && (
+                      <button className="btn btn-primary btn-sm" disabled={busy === a.id} onClick={() => void accept(a.id)}>
+                        Accept
+                      </button>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
     </div>
   );

@@ -1,0 +1,167 @@
+/* ==========================================================================
+   BaroTech design tokens
+   ==========================================================================
+   Palette rationale: deep indigo-navy (ink) for authority/trust, a teal
+   brand color distinct from generic "EdTech blue," and a warm amber accent
+   ("flame") used sparingly for energy/attention — never as a second
+   competing accent. Every text/background pairing below that carries real
+   copy has been checked against WCAG AA (4.5:1 normal text, 3:1 large
+   text/UI). `--ink-faint` is the one exception — it dips to ~3.2:1 on
+   paper, so it is restricted to large/decorative text and disabled states
+   (see component usage), never small body copy.
+
+   Structure: bare :root is the complete light palette. Dark mode redefines
+   the same tokens twice — once for the OS-level `prefers-color-scheme`
+   default, once for an explicit user override via [data-theme] — so a
+   manual toggle always wins over the OS setting in either direction.
+   ========================================================================== */
+
+:root {
+  color-scheme: light;
+
+  /* ---- Type ---- */
+  --font-display: 'Lexend', ui-sans-serif, system-ui, sans-serif;
+  --font-body: 'Inter', -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, 'SF Mono', Consolas, monospace;
+
+  --text-xs: 0.75rem;
+  --text-sm: 0.8125rem;
+  --text-base: 1rem;
+  --text-md: 1.0625rem;
+  --text-lg: 1.25rem;
+  --text-xl: 1.5rem;
+  --text-2xl: 1.875rem;
+  --text-3xl: 2.375rem;
+  --leading-tight: 1.2;
+  --leading-normal: 1.55;
+
+  /* ---- Space (4px grid) ---- */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+  --space-7: 3rem;
+  --space-8: 4rem;
+
+  /* ---- Radii & shadow ---- */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --radius-full: 999px;
+  --shadow-sm: 0 1px 2px rgba(16, 35, 63, 0.07);
+  --shadow-md: 0 6px 20px rgba(16, 35, 63, 0.10);
+  --shadow-focus: 0 0 0 3px var(--color-focus-ring-soft);
+
+  /* ---- Layout ---- */
+  --sidebar-width: 15.5rem;
+  --header-height: 3.75rem;
+  --content-max: 74rem;
+
+  /* ---- Motion ---- */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --duration-fast: 120ms;
+  --duration-base: 200ms;
+
+  /* ---- Color: light palette ---- */
+  --color-ink: #10233f;
+  --color-ink-soft: #45566e;
+  --color-ink-faint: #7c8ca3; /* large/decorative text & disabled states only — see note above */
+  --color-paper: #f6f8fa;
+  --color-surface: #ffffff;
+  --color-surface-sunken: #eef1f5;
+  --color-border: #dde3ea;
+  --color-border-strong: #c3ccd6;
+
+  --color-brand: #0e7c86;
+  --color-brand-strong: #0b616a;
+  --color-brand-soft: #e2f2f1;
+  --color-on-brand: #ffffff;
+
+  --color-flame: #d9631a;
+  --color-flame-soft: #fce7d8;
+
+  --color-success: #15803d;
+  --color-success-bg: #dcfce7;
+  --color-warning: #a16207;
+  --color-warning-bg: #fef3c7;
+  --color-danger: #b91c1c;
+  --color-danger-bg: #fee2e2;
+
+  --color-focus-ring: #0e7c86;
+  --color-focus-ring-soft: rgba(14, 124, 134, 0.28);
+  --color-overlay: rgba(16, 24, 38, 0.48);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    color-scheme: dark;
+
+    --color-ink: #e7ecf2;
+    --color-ink-soft: #aebccb;
+    --color-ink-faint: #7d8ea2;
+    --color-paper: #0b1420;
+    --color-surface: #121d2c;
+    --color-surface-sunken: #0e1826;
+    --color-border: #223347;
+    --color-border-strong: #314a63;
+
+    --color-brand: #4fc4bf;
+    --color-brand-strong: #7bd6d1;
+    --color-brand-soft: #11302d;
+    --color-on-brand: #06181a;
+
+    --color-flame: #f0925a;
+    --color-flame-soft: #3a2417;
+
+    --color-success: #4ade80;
+    --color-success-bg: #0f2a1b;
+    --color-warning: #fcd34d;
+    --color-warning-bg: #2e2306;
+    --color-danger: #fca5a5;
+    --color-danger-bg: #3a1616;
+
+    --color-focus-ring: #4fc4bf;
+    --color-focus-ring-soft: rgba(79, 196, 191, 0.32);
+    --color-overlay: rgba(3, 8, 14, 0.6);
+
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.35);
+    --shadow-md: 0 10px 28px rgba(0, 0, 0, 0.45);
+  }
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+
+  --color-ink: #e7ecf2;
+  --color-ink-soft: #aebccb;
+  --color-ink-faint: #7d8ea2;
+  --color-paper: #0b1420;
+  --color-surface: #121d2c;
+  --color-surface-sunken: #0e1826;
+  --color-border: #223347;
+  --color-border-strong: #314a63;
+
+  --color-brand: #4fc4bf;
+  --color-brand-strong: #7bd6d1;
+  --color-brand-soft: #11302d;
+  --color-on-brand: #06181a;
+
+  --color-flame: #f0925a;
+  --color-flame-soft: #3a2417;
+
+  --color-success: #4ade80;
+  --color-success-bg: #0f2a1b;
+  --color-warning: #fcd34d;
+  --color-warning-bg: #2e2306;
+  --color-danger: #fca5a5;
+  --color-danger-bg: #3a1616;
+
+  --color-focus-ring: #4fc4bf;
+  --color-focus-ring-soft: rgba(79, 196, 191, 0.32);
+  --color-overlay: rgba(3, 8, 14, 0.6);
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.35);
+  --shadow-md: 0 10px 28px rgba(0, 0, 0, 0.45);
+}

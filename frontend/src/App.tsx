@@ -13,7 +13,7 @@ import { OfferingGradebook } from './pages/lecturer/OfferingGradebook';
 import { AcademicStructure } from './pages/admin/AcademicStructure';
 import { Applications } from './pages/admin/Applications';
 import { UsersAndRoles } from './pages/admin/UsersAndRoles';
-import './App.css';
+import { NotFound } from './pages/NotFound';
 
 function App() {
   return (
@@ -46,6 +46,10 @@ function App() {
           <Route path="/admin/academic-structure" element={<AcademicStructure />} />
           <Route path="/admin/applications" element={<Applications />} />
           <Route path="/admin/users" element={<UsersAndRoles />} />
+          {/* Catches any authenticated dead-end with a real 404 rather than a silent
+              bounce; unauthenticated visitors never reach this — ProtectedRoute sends
+              them to /login first. */}
+          <Route path="*" element={<NotFound />} />
         </Route>
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>

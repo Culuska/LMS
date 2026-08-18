@@ -2,6 +2,9 @@ import { useEffect, useState } from 'react';
 import { api, ApiError } from '../../api/client';
 import { useAuth } from '../../auth/useAuth';
 import type { Transcript as TranscriptData } from '../../types/domain';
+import { PageHeader } from '../../components/PageHeader';
+import { EmptyState, Loading } from '../../components/StateViews';
+import { IconAward } from '../../components/icons';
 
 export function Transcript() {
   const { user } = useAuth();
@@ -21,60 +24,88 @@ export function Transcript() {
 
   return (
     <div>
-      <h1>Official Transcript</h1>
-      {error && <p className="error">{error}</p>}
-      {!error && !transcript && <p>Loading…</p>}
+      <PageHeader
+        title="Official Transcript"
+        subtitle="Your published grades, by semester, with credits and cumulative GPA."
+        crumbs={[{ label: 'Dashboard', to: '/dashboard' }, { label: 'Transcript' }]}
+      />
+      {error && <p className="error" role="alert">{error}</p>}
+      {!error && !transcript && <Loading label="Loading your transcript…" />}
       {transcript && (
         <>
-          <p>
-            <strong>
+          <div className="card" style={{ marginBottom: 'var(--space-5)' }}>
+            <h2 style={{ marginBottom: '0.25rem' }}>
               {transcript.student.firstName} {transcript.student.lastName}
-            </strong>{' '}
-            — {transcript.student.studentNumber} ({transcript.student.status})
-          </p>
-          {transcript.programs.map((p) => (
-            <p key={p.programName} className="transcript-program">
-              {p.programName} — {p.curriculumVersion} ({p.enrollmentStatus})
+            </h2>
+            <p className="mono" style={{ color: 'var(--color-ink-soft)', fontSize: 'var(--text-sm)' }}>
+              {transcript.student.studentNumber} · {transcript.student.status}
             </p>
-          ))}
+            {transcript.programs.map((p) => (
+              <p key={p.programName} className="transcript-program">
+                {p.programName} — {p.curriculumVersion} ({p.enrollmentStatus})
+              </p>
+            ))}
+          </div>
 
-          {transcript.semesters.length === 0 && <p>No published results yet.</p>}
+          {transcript.semesters.length === 0 && (
+            <EmptyState
+              icon={<IconAward />}
+              title="No published results yet"
+              description="Once a semester's grades are approved and published, they'll appear here."
+            />
+          )}
 
           {transcript.semesters.map((sem) => (
             <div key={sem.semesterName} className="transcript-semester">
               <h2>{sem.semesterName}</h2>
-              <table className="data-table">
-                <thead>
-                  <tr>
-                    <th>Code</th>
-                    <th>Course</th>
-                    <th>Credits</th>
-                    <th>Grade</th>
-                    <th>Points</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {sem.courses.map((c) => (
-                    <tr key={c.courseCode}>
-                      <td>{c.courseCode}</td>
-                      <td>{c.courseTitle}</td>
-                      <td>{c.credits}</td>
-                      <td>{c.letterGrade}</td>
-                      <td>{c.gradePoints.toFixed(1)}</td>
+              <div className="table-scroll">
+                <table className="data-table">
+                  <thead>
+                    <tr>
+                      <th>Code</th>
+                      <th>Course</th>
+                      <th className="num">Credits</th>
+                      <th>Grade</th>
+                      <th className="num">Points</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {sem.courses.map((c) => (
+                      <tr key={c.courseCode}>
+                        <td className="mono">{c.courseCode}</td>
+                        <td>{c.courseTitle}</td>
+                        <td className="num">{c.credits}</td>
+                        <td>
+                          <span className="chip chip-ok">{c.letterGrade}</span>
+                        </td>
+                        <td className="num">{c.gradePoints.toFixed(1)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           ))}
 
-          <div className="transcript-summary">
-            <p>Credits attempted: {transcript.totalCreditsAttempted}</p>
-            <p>Credits earned: {transcript.totalCreditsEarned}</p>
-            <p>
-              <strong>Cumulative GPA: {transcript.cumulativeGpa !== null ? transcript.cumulativeGpa.toFixed(2) : '—'}</strong>
-            </p>
-          </div>
+          {transcript.semesters.length > 0 && (
+            <div className="transcript-summary">
+              <p>
+                Credits attempted
+                <br />
+                <strong>{transcript.totalCreditsAttempted}</strong>
+              </p>
+              <p>
+                Credits earned
+                <br />
+                <strong>{transcript.totalCreditsEarned}</strong>
+              </p>
+              <p>
+                Cumulative GPA
+                <br />
+                <strong>{transcript.cumulativeGpa !== null ? transcript.cumulativeGpa.toFixed(2) : '—'}</strong>
+              </p>
+            </div>
+          )}
         </>
       )}
     </div>

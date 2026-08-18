@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { api, ApiError } from '../../api/client';
+import { PageHeader } from '../../components/PageHeader';
 import type {
   AcademicYear,
   Course,
@@ -44,10 +45,19 @@ export function AcademicStructure() {
 
   return (
     <div>
-      <h1>Academic Structure</h1>
+      <PageHeader
+        title="Academic Structure"
+        subtitle="Faculties, departments, programs, the academic calendar, courses, and course offerings."
+        crumbs={[{ label: 'Dashboard', to: '/dashboard' }, { label: 'Academic Structure' }]}
+      />
       <div className="tab-bar">
         {TABS.map((t) => (
-          <button key={t.key} className={tab === t.key ? 'tab-active' : ''} onClick={() => setTab(t.key)}>
+          <button
+            key={t.key}
+            className={tab === t.key ? 'tab-active' : ''}
+            aria-pressed={tab === t.key}
+            onClick={() => setTab(t.key)}
+          >
             {t.label}
           </button>
         ))}
@@ -95,7 +105,8 @@ function FacultiesTab() {
 
   return (
     <section>
-      {error && <p className="error">{error}</p>}
+      {error && <p className="error" role="alert">{error}</p>}
+      <div className="table-scroll">
       <table className="data-table">
         <thead>
           <tr>
@@ -112,10 +123,11 @@ function FacultiesTab() {
           ))}
         </tbody>
       </table>
+      </div>
       <form className="inline-form" onSubmit={submit}>
         <input placeholder="Code" value={form.code} onChange={(e) => setForm({ ...form, code: e.target.value })} required />
         <input placeholder="Name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
-        <button type="submit">Add faculty</button>
+        <button type="submit" className="btn btn-primary">Add faculty</button>
       </form>
     </section>
   );
@@ -148,7 +160,8 @@ function DepartmentsTab() {
 
   return (
     <section>
-      {error && <p className="error">{error}</p>}
+      {error && <p className="error" role="alert">{error}</p>}
+      <div className="table-scroll">
       <table className="data-table">
         <thead>
           <tr>
@@ -167,6 +180,7 @@ function DepartmentsTab() {
           ))}
         </tbody>
       </table>
+      </div>
       <form className="inline-form" onSubmit={submit}>
         <select value={form.facultyId} onChange={(e) => setForm({ ...form, facultyId: e.target.value })} required>
           <option value="" disabled>
@@ -180,7 +194,7 @@ function DepartmentsTab() {
         </select>
         <input placeholder="Code" value={form.code} onChange={(e) => setForm({ ...form, code: e.target.value })} required />
         <input placeholder="Name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
-        <button type="submit">Add department</button>
+        <button type="submit" className="btn btn-primary">Add department</button>
       </form>
     </section>
   );
@@ -213,7 +227,8 @@ function ProgramsTab() {
 
   return (
     <section>
-      {error && <p className="error">{error}</p>}
+      {error && <p className="error" role="alert">{error}</p>}
+      <div className="table-scroll">
       <table className="data-table">
         <thead>
           <tr>
@@ -234,6 +249,7 @@ function ProgramsTab() {
           ))}
         </tbody>
       </table>
+      </div>
       <form className="inline-form" onSubmit={submit}>
         <select value={form.departmentId} onChange={(e) => setForm({ ...form, departmentId: e.target.value })} required>
           <option value="" disabled>
@@ -254,7 +270,7 @@ function ProgramsTab() {
         </select>
         <input placeholder="Code" value={form.code} onChange={(e) => setForm({ ...form, code: e.target.value })} required />
         <input placeholder="Name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
-        <button type="submit">Add program</button>
+        <button type="submit" className="btn btn-primary">Add program</button>
       </form>
     </section>
   );
@@ -283,7 +299,8 @@ function AcademicYearsTab() {
 
   return (
     <section>
-      {error && <p className="error">{error}</p>}
+      {error && <p className="error" role="alert">{error}</p>}
+      <div className="table-scroll">
       <table className="data-table">
         <thead>
           <tr>
@@ -302,6 +319,7 @@ function AcademicYearsTab() {
           ))}
         </tbody>
       </table>
+      </div>
       <form className="inline-form" onSubmit={submit}>
         <input
           placeholder="e.g. 2026/2027"
@@ -311,7 +329,7 @@ function AcademicYearsTab() {
         />
         <input type="date" value={form.startDate} onChange={(e) => setForm({ ...form, startDate: e.target.value })} required />
         <input type="date" value={form.endDate} onChange={(e) => setForm({ ...form, endDate: e.target.value })} required />
-        <button type="submit">Add academic year</button>
+        <button type="submit" className="btn btn-primary">Add academic year</button>
       </form>
     </section>
   );
@@ -352,7 +370,8 @@ function SemestersTab() {
 
   return (
     <section>
-      {error && <p className="error">{error}</p>}
+      {error && <p className="error" role="alert">{error}</p>}
+      <div className="table-scroll">
       <table className="data-table">
         <thead>
           <tr>
@@ -377,6 +396,7 @@ function SemestersTab() {
           ))}
         </tbody>
       </table>
+      </div>
       <form className="inline-form form-grid" onSubmit={submit}>
         <select value={form.academicYearId} onChange={(e) => setForm({ ...form, academicYearId: e.target.value })} required>
           <option value="" disabled>
@@ -430,7 +450,7 @@ function SemestersTab() {
             required
           />
         </label>
-        <button type="submit">Add semester</button>
+        <button type="submit" className="btn btn-primary">Add semester</button>
       </form>
     </section>
   );
@@ -459,7 +479,8 @@ function CoursesTab() {
 
   return (
     <section>
-      {error && <p className="error">{error}</p>}
+      {error && <p className="error" role="alert">{error}</p>}
+      <div className="table-scroll">
       <table className="data-table">
         <thead>
           <tr>
@@ -478,6 +499,7 @@ function CoursesTab() {
           ))}
         </tbody>
       </table>
+      </div>
       <form className="inline-form" onSubmit={submit}>
         <input placeholder="Code" value={form.code} onChange={(e) => setForm({ ...form, code: e.target.value })} required />
         <input placeholder="Title" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} required />
@@ -489,7 +511,7 @@ function CoursesTab() {
           onChange={(e) => setForm({ ...form, credits: e.target.value })}
           required
         />
-        <button type="submit">Add course</button>
+        <button type="submit" className="btn btn-primary">Add course</button>
       </form>
     </section>
   );
@@ -524,7 +546,8 @@ function OfferingsTab() {
 
   return (
     <section>
-      {error && <p className="error">{error}</p>}
+      {error && <p className="error" role="alert">{error}</p>}
+      <div className="table-scroll">
       <table className="data-table">
         <thead>
           <tr>
@@ -551,6 +574,7 @@ function OfferingsTab() {
           ))}
         </tbody>
       </table>
+      </div>
       <form className="inline-form" onSubmit={submit}>
         <select value={form.courseId} onChange={(e) => setForm({ ...form, courseId: e.target.value })} required>
           <option value="" disabled>
@@ -590,7 +614,7 @@ function OfferingsTab() {
           onChange={(e) => setForm({ ...form, capacity: e.target.value })}
           required
         />
-        <button type="submit">Add offering</button>
+        <button type="submit" className="btn btn-primary">Add offering</button>
       </form>
     </section>
   );

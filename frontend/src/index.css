@@ -1,25 +1,16 @@
-:root {
-  --text: #333;
-  --bg: #fff;
-  font: 16px/1.5 system-ui, 'Segoe UI', Roboto, sans-serif;
-  color: var(--text);
-  background: var(--bg);
-  color-scheme: light;
-}
+/* Font weights actually used: Lexend (headings, 500/600/700), Inter (body,
+   400/500/600/700), IBM Plex Mono (tabular/data figures, 400/500). Loaded
+   per-weight rather than the full family to keep the bundle lean. */
+@import '@fontsource/lexend/500.css';
+@import '@fontsource/lexend/600.css';
+@import '@fontsource/lexend/700.css';
+@import '@fontsource/inter/400.css';
+@import '@fontsource/inter/500.css';
+@import '@fontsource/inter/600.css';
+@import '@fontsource/inter/700.css';
+@import '@fontsource/ibm-plex-mono/400.css';
+@import '@fontsource/ibm-plex-mono/500.css';
 
-* {
-  box-sizing: border-box;
-}
-
-body {
-  margin: 0;
-}
-
-#root {
-  min-height: 100vh;
-}
-
-h1,
-h2 {
-  font-weight: 600;
-}
+@import './styles/tokens.css';
+@import './styles/base.css';
+@import './styles/components.css';
