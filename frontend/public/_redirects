@@ -1,0 +1,5 @@
+# Single-page app fallback for Cloudflare Pages: react-router-dom uses client-side
+# routing (BrowserRouter), so a direct load or refresh on any non-root path (e.g.
+# /login, /dashboard) needs to still resolve to index.html and let the router take
+# over, rather than getting a 404 from the static host.
+/*  /index.html  200
