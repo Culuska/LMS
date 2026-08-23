@@ -37,6 +37,12 @@ function App() {
             </ProtectedRoute>
           }
         >
+          {/* Exact-match index route for "/" — without this, the sibling "*" below
+              (NotFound) and the outer top-level "*" (redirect) tie in specificity,
+              and NotFound wins the tiebreak by declaration order. An index route
+              always outranks a wildcard, so this guarantees "/" redirects correctly
+              regardless of route order. */}
+          <Route index element={<Navigate to="/dashboard" replace />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/notifications" element={<Notifications />} />
           <Route path="/my-courses" element={<MyCourses />} />
