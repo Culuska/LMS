@@ -428,6 +428,9 @@ model CourseContent {
   parentId         String?
   title            String
   body             String?
+  // A plain video URL (YouTube, Vimeo, or any other hosted link) rather than an
+  // uploaded file — lecturers link videos, they don't host them here.
+  videoUrl         String?
   orderIndex       Int      @default(0)
   createdAt        DateTime @default(now())
 
