@@ -255,6 +255,7 @@ export interface SemesterFull {
   registrationOpensAt: string;
   registrationClosesAt: string;
   withdrawalDeadline: string;
+  isActive: boolean;
   academicYear?: AcademicYear;
 }
 

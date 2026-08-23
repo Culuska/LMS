@@ -348,6 +348,7 @@ function SemestersTab() {
     withdrawalDeadline: '',
   });
   const { error, capture } = useErrorBanner();
+  const [busyId, setBusyId] = useState<string | null>(null);
 
   const load = () => {
     api.get<SemesterFull[]>('/semesters').then(setItems).catch((e) => capture(e, 'Failed to load semesters'));
@@ -366,6 +367,22 @@ function SemestersTab() {
     }
   };
 
+  // Activating a semester is what makes it the one students register into and lecturers
+  // create simplified courses against (CourseOfferingsService.createSimple picks the
+  // single semester with isActive: true) — this used to be settable only via a direct
+  // database edit.
+  const activate = async (id: string) => {
+    setBusyId(id);
+    try {
+      await api.patch(`/semesters/${id}/activate`);
+      load();
+    } catch (err) {
+      capture(err, 'Failed to activate semester');
+    } finally {
+      setBusyId(null);
+    }
+  };
+
   const yearName = (id: string) => years.find((y) => y.id === id)?.name ?? id;
 
   return (
@@ -380,6 +397,8 @@ function SemestersTab() {
             <th>Start</th>
             <th>End</th>
             <th>Registration window</th>
+            <th>Status</th>
+            <th></th>
           </tr>
         </thead>
         <tbody>
@@ -392,11 +411,29 @@ function SemestersTab() {
               <td>
                 {s.registrationOpensAt.slice(0, 10)} – {s.registrationClosesAt.slice(0, 10)}
               </td>
+              <td>
+                {s.isActive ? (
+                  <span className="chip chip-ok">active</span>
+                ) : (
+                  <span className="chip chip-neutral">inactive</span>
+                )}
+              </td>
+              <td className="action-cell">
+                {!s.isActive && (
+                  <button className="btn btn-secondary btn-sm" disabled={busyId === s.id} onClick={() => void activate(s.id)}>
+                    {busyId === s.id ? 'Activating…' : 'Activate'}
+                  </button>
+                )}
+              </td>
             </tr>
           ))}
         </tbody>
       </table>
       </div>
+      <p style={{ color: 'var(--color-ink-faint)', fontSize: 'var(--text-sm)', margin: 'var(--space-2) 0' }}>
+        Only one semester can be active at a time — it's the one students register into and
+        lecturers create courses against.
+      </p>
       <form className="inline-form form-grid" onSubmit={submit}>
         <select value={form.academicYearId} onChange={(e) => setForm({ ...form, academicYearId: e.target.value })} required>
           <option value="" disabled>

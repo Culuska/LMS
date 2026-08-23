@@ -4,6 +4,7 @@ import {
   Get,
   Param,
   ParseUUIDPipe,
+  Patch,
   Post,
   Query,
 } from '@nestjs/common';
@@ -11,6 +12,8 @@ import { RoleName } from '@prisma/client';
 import { SemestersService } from './semesters.service';
 import { CreateSemesterDto } from './dto/create-semester.dto';
 import { Roles } from '../common/decorators/roles.decorator';
+
+const MANAGE_ROLES: RoleName[] = [RoleName.SUPER_ADMIN, RoleName.REGISTRAR];
 
 @Controller('semesters')
 export class SemestersController {
@@ -26,9 +29,21 @@ export class SemestersController {
     return this.service.findOne(id);
   }
 
-  @Roles(RoleName.SUPER_ADMIN, RoleName.REGISTRAR)
+  @Roles(...MANAGE_ROLES)
   @Post()
   create(@Body() dto: CreateSemesterDto) {
     return this.service.create(dto);
+  }
+
+  @Roles(...MANAGE_ROLES)
+  @Patch(':id/activate')
+  activate(@Param('id', ParseUUIDPipe) id: string) {
+    return this.service.activate(id);
+  }
+
+  @Roles(...MANAGE_ROLES)
+  @Patch(':id/deactivate')
+  deactivate(@Param('id', ParseUUIDPipe) id: string) {
+    return this.service.deactivate(id);
   }
 }

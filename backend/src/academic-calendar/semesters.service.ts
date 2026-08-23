@@ -85,4 +85,32 @@ export class SemestersService {
       },
     });
   }
+
+  /** Marks this semester the active one and every other semester inactive — at most one
+   * semester is ever active at a time. Simple course creation (CourseOfferingsService
+   * .createSimple) and other "current term" lookups key off this flag, and until now
+   * nothing in the product could set it — only a direct DB edit could. */
+  async activate(id: string) {
+    await this.findOne(id);
+    await this.prisma.$transaction([
+      this.prisma.semester.updateMany({
+        where: { isActive: true },
+        data: { isActive: false },
+      }),
+      this.prisma.semester.update({
+        where: { id },
+        data: { isActive: true },
+      }),
+    ]);
+    return this.findOne(id);
+  }
+
+  async deactivate(id: string) {
+    await this.findOne(id);
+    await this.prisma.semester.update({
+      where: { id },
+      data: { isActive: false },
+    });
+    return this.findOne(id);
+  }
 }
