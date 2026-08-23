@@ -59,6 +59,7 @@ export interface AssessmentItem {
   weight: string;
   maxMarks: string;
   dueAt: string | null;
+  durationMinutes: number | null;
 }
 
 export interface Mark {
@@ -111,6 +112,47 @@ export interface AttendanceSession {
   id: string;
   sessionDate: string;
   records: AttendanceRecord[];
+}
+
+export interface QuizChoice {
+  id: string;
+  questionId: string;
+  text: string;
+  orderIndex: number;
+  // Present only in the lecturer's view (QuizService hides it from students,
+  // before and after they take the quiz).
+  isCorrect?: boolean;
+}
+
+export interface QuizQuestion {
+  id: string;
+  assessmentItemId: string;
+  text: string;
+  orderIndex: number;
+  choices: QuizChoice[];
+}
+
+export interface QuizAnswer {
+  id: string;
+  questionId: string;
+  choiceId: string | null;
+}
+
+export interface QuizAttempt {
+  id: string;
+  assessmentItemId: string;
+  studentId: string;
+  startedAt: string;
+  submittedAt: string | null;
+  isLate: boolean;
+  score: string | null;
+  answers: QuizAnswer[];
+  totalQuestions?: number;
+  correctCount?: number;
+  student?: {
+    studentNumber: string;
+    user: { firstName: string; lastName: string; email: string };
+  };
 }
 
 export interface ForumAuthor {

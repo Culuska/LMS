@@ -30,4 +30,10 @@ export class CreateAssessmentItemDto {
   @IsOptional()
   @IsDateString()
   dueAt?: string;
+
+  /** Only meaningful for type: QUIZ — an optional time limit shown to the student. */
+  @IsOptional()
+  @IsNumber()
+  @Min(1)
+  durationMinutes?: number;
 }

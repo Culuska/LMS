@@ -15,6 +15,7 @@ import { OfferingGradebook } from './pages/lecturer/OfferingGradebook';
 import { OfferingContent } from './pages/lecturer/OfferingContent';
 import { OfferingAttendance } from './pages/lecturer/OfferingAttendance';
 import { OfferingForum } from './pages/lecturer/OfferingForum';
+import { OfferingQuiz } from './pages/lecturer/OfferingQuiz';
 import { AcademicStructure } from './pages/admin/AcademicStructure';
 import { Applications } from './pages/admin/Applications';
 import { UsersAndRoles } from './pages/admin/UsersAndRoles';
@@ -59,6 +60,7 @@ function App() {
           <Route path="/my-offerings/:offeringId/content" element={<OfferingContent />} />
           <Route path="/my-offerings/:offeringId/attendance" element={<OfferingAttendance />} />
           <Route path="/my-offerings/:offeringId/forum" element={<OfferingForum />} />
+          <Route path="/my-offerings/:offeringId/quizzes/:itemId" element={<OfferingQuiz />} />
           <Route path="/admin/academic-structure" element={<AcademicStructure />} />
           <Route path="/admin/applications" element={<Applications />} />
           <Route path="/admin/users" element={<UsersAndRoles />} />

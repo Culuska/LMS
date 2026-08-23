@@ -328,6 +328,7 @@ model Student {
   courseRegistrations   CourseRegistration[]
   attendanceRecords     AttendanceRecord[]
   submissions           Submission[]
+  quizAttempts          QuizAttempt[]
   academicRecordEntries AcademicRecordEntry[]
   gpaRecords            GpaRecord[]
   application           Application?
@@ -591,11 +592,17 @@ model AssessmentItem {
   weight           Decimal        @db.Decimal(5, 2)
   maxMarks         Decimal        @db.Decimal(6, 2)
   dueAt            DateTime?
+  // Only meaningful when type is QUIZ — an optional time limit, per the LMS
+  // simplification spec ("optional duration/deadline"). Not enforced server-side (no
+  // server-tracked countdown); the frontend surfaces it to the student as a heads-up.
+  durationMinutes  Int?
   createdAt        DateTime       @default(now())
 
   courseOffering CourseOffering @relation(fields: [courseOfferingId], references: [id])
   submissions    Submission[]
   marks          Mark[]
+  quizQuestions  QuizQuestion[]
+  quizAttempts   QuizAttempt[]
 
   @@index([courseOfferingId])
   @@map("assessment_items")
@@ -641,6 +648,76 @@ model Mark {
 
   @@unique([assessmentItemId, studentId])
   @@map("marks")
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Quizzes — multiple-choice only, auto-scored. A quiz is just an AssessmentItem
+// with type QUIZ; these four models are its questions/choices and the students'
+// attempts. See docs/00-requirements-audit.md simplification spec §8.
+// ─────────────────────────────────────────────────────────────────────────
+
+model QuizQuestion {
+  id               String   @id @default(uuid())
+  assessmentItemId String
+  text             String
+  orderIndex       Int      @default(0)
+  createdAt        DateTime @default(now())
+
+  assessmentItem AssessmentItem @relation(fields: [assessmentItemId], references: [id], onDelete: Cascade)
+  choices        QuizChoice[]
+  answers        QuizAnswer[]
+
+  @@index([assessmentItemId])
+  @@map("quiz_questions")
+}
+
+model QuizChoice {
+  id         String  @id @default(uuid())
+  questionId String
+  text       String
+  // Never sent to a student before they submit — see QuizService.serializeQuestions.
+  isCorrect  Boolean @default(false)
+  orderIndex Int     @default(0)
+
+  question QuizQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  answers  QuizAnswer[]
+
+  @@index([questionId])
+  @@map("quiz_choices")
+}
+
+/// One per student per quiz — a single attempt, auto-graded on submit. `score` and
+/// `submittedAt` stay null until then.
+model QuizAttempt {
+  id               String    @id @default(uuid())
+  assessmentItemId String
+  studentId        String
+  startedAt        DateTime  @default(now())
+  submittedAt      DateTime?
+  isLate           Boolean   @default(false)
+  score            Decimal?  @db.Decimal(6, 2)
+
+  assessmentItem AssessmentItem @relation(fields: [assessmentItemId], references: [id])
+  student        Student        @relation(fields: [studentId], references: [id])
+  answers        QuizAnswer[]
+
+  @@unique([assessmentItemId, studentId])
+  @@index([studentId])
+  @@map("quiz_attempts")
+}
+
+model QuizAnswer {
+  id         String  @id @default(uuid())
+  attemptId  String
+  questionId String
+  choiceId   String?
+
+  attempt  QuizAttempt  @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  question QuizQuestion @relation(fields: [questionId], references: [id])
+  choice   QuizChoice?  @relation(fields: [choiceId], references: [id])
+
+  @@unique([attemptId, questionId])
+  @@map("quiz_answers")
 }
 
 enum ResultStatus {

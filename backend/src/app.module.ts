@@ -20,6 +20,7 @@ import { NotificationsModule } from './notifications/notifications.module';
 import { AdmissionsModule } from './admissions/admissions.module';
 import { AcademicRecordsModule } from './academic-records/academic-records.module';
 import { ForumModule } from './forum/forum.module';
+import { QuizModule } from './quiz/quiz.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { RolesGuard } from './common/guards/roles.guard';
 
@@ -48,6 +49,7 @@ import { RolesGuard } from './common/guards/roles.guard';
     AdmissionsModule,
     AcademicRecordsModule,
     ForumModule,
+    QuizModule,
   ],
   controllers: [AppController],
   providers: [

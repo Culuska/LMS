@@ -6,13 +6,15 @@ import type {
   AssessmentItem,
   AttendanceSession,
   CourseContentItem,
+  QuizAttempt,
+  QuizQuestion,
   Resource,
   Submission,
 } from '../../types/domain';
 import { PageHeader } from '../../components/PageHeader';
 import { EmptyState, Loading } from '../../components/StateViews';
 import { ForumSection } from '../../components/ForumSection';
-import { IconBook, IconCheckCircle, IconClipboard, IconFile, IconUpload, IconVideo } from '../../components/icons';
+import { IconAward, IconBook, IconCheckCircle, IconClipboard, IconFile, IconUpload, IconVideo } from '../../components/icons';
 
 const ATTENDANCE_CHIP: Record<string, string> = {
   PRESENT: 'chip-ok',
@@ -169,11 +171,123 @@ function AssignmentCard({ item }: { item: AssessmentItem }) {
   );
 }
 
+/** One quiz: multiple-choice questions, one attempt, auto-scored on submit. Like
+ * AssignmentCard, this owns its own attempt/questions/loading state independently of
+ * its siblings. */
+function QuizCard({ item }: { item: AssessmentItem }) {
+  const [attempt, setAttempt] = useState<QuizAttempt | null>(null);
+  const [questions, setQuestions] = useState<QuizQuestion[] | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [answers, setAnswers] = useState<Record<string, string>>({});
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const load = useCallback(() => {
+    Promise.all([
+      api.get<QuizAttempt | null>(`/assessment-items/${item.id}/quiz-attempts/mine`),
+      api.get<QuizQuestion[]>(`/assessment-items/${item.id}/quiz-questions`),
+    ])
+      .then(([a, qs]) => {
+        setAttempt(a ?? null);
+        setQuestions(qs);
+      })
+      .catch((err) => setError(err instanceof ApiError ? err.message : 'Failed to load quiz'))
+      .finally(() => setLoading(false));
+  }, [item.id]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  const submit = async () => {
+    setSubmitting(true);
+    setError(null);
+    try {
+      const result = await api.post<QuizAttempt>(`/assessment-items/${item.id}/quiz-attempts`, {
+        answers: Object.entries(answers).map(([questionId, choiceId]) => ({ questionId, choiceId })),
+      });
+      setAttempt(result);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Failed to submit quiz');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const taken = !!attempt?.submittedAt;
+  const percentage = taken && attempt?.score !== null && attempt?.score !== undefined
+    ? Math.round((Number(attempt.score) / Number(item.maxMarks)) * 100)
+    : null;
+
+  return (
+    <div className="card">
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 'var(--space-3)' }}>
+        <h3 style={{ fontFamily: 'var(--font-display)', fontSize: 'var(--text-md)' }}>{item.title}</h3>
+        {!loading && (
+          <span className={`chip ${taken ? 'chip-ok' : 'chip-neutral'}`}>{taken ? 'scored' : 'not taken'}</span>
+        )}
+      </div>
+      <p style={{ color: 'var(--color-ink-faint)', fontSize: 'var(--text-sm)' }}>
+        Due: {formatDueAt(item.dueAt)}
+        {item.durationMinutes ? ` · Time limit: ${item.durationMinutes} min` : ''}
+      </p>
+      {error && <p className="error" role="alert">{error}</p>}
+
+      {loading ? (
+        <Loading label="Loading…" />
+      ) : taken ? (
+        <p>
+          <span className="chip chip-ok">
+            <IconCheckCircle style={{ width: '0.9rem', height: '0.9rem', marginRight: '0.3rem' }} />
+            You scored {attempt!.score} / {item.maxMarks}
+            {percentage !== null ? ` (${percentage}%)` : ''}
+          </span>
+        </p>
+      ) : !questions || questions.length === 0 ? (
+        <p style={{ color: 'var(--color-ink-faint)' }}>Your lecturer hasn't added any questions yet.</p>
+      ) : (
+        <div style={{ display: 'grid', gap: 'var(--space-3)', marginTop: 'var(--space-2)' }}>
+          {questions.map((q, idx) => (
+            <fieldset key={q.id} style={{ border: 'none', padding: 0, margin: 0 }}>
+              <legend style={{ fontWeight: 500, marginBottom: 'var(--space-1)' }}>
+                {idx + 1}. {q.text}
+              </legend>
+              <div style={{ display: 'grid', gap: 'var(--space-1)' }}>
+                {q.choices.map((c) => (
+                  <label key={c.id} style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+                    <input
+                      type="radio"
+                      name={`q-${q.id}`}
+                      checked={answers[q.id] === c.id}
+                      onChange={() => setAnswers({ ...answers, [q.id]: c.id })}
+                    />
+                    {c.text}
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+          ))}
+          <button
+            type="button"
+            className="btn btn-primary btn-sm"
+            style={{ justifySelf: 'start' }}
+            disabled={submitting}
+            onClick={() => void submit()}
+          >
+            {submitting ? 'Submitting…' : 'Submit quiz'}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function CourseWorkspace() {
   const { offeringId } = useParams<{ offeringId: string }>();
   const { user } = useAuth();
   const [content, setContent] = useState<CourseContentItem[] | null>(null);
   const [assignments, setAssignments] = useState<AssessmentItem[] | null>(null);
+  const [quizzes, setQuizzes] = useState<AssessmentItem[] | null>(null);
   const [sessions, setSessions] = useState<AttendanceSession[] | null>(null);
   const [attendancePercentage, setAttendancePercentage] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -188,6 +302,7 @@ export function CourseWorkspace() {
       .then(([contentData, itemsData, sessionData]) => {
         setContent(contentData);
         setAssignments(itemsData.filter((i) => i.type === 'ASSIGNMENT'));
+        setQuizzes(itemsData.filter((i) => i.type === 'QUIZ'));
         setSessions(sessionData);
       })
       .catch((err) => setError(err instanceof ApiError ? err.message : 'Failed to load course'));
@@ -302,6 +417,19 @@ export function CourseWorkspace() {
         <div style={{ display: 'grid', gap: 'var(--space-3)' }}>
           {assignments.map((item) => (
             <AssignmentCard key={item.id} item={item} />
+          ))}
+        </div>
+      )}
+
+      <h2 style={{ margin: 'var(--space-6) 0 var(--space-3)' }}>Quizzes</h2>
+      {!quizzes ? (
+        <Loading label="Loading quizzes…" />
+      ) : quizzes.length === 0 ? (
+        <EmptyState icon={<IconAward />} title="No quizzes yet" description="Your lecturer hasn't posted any quizzes yet." />
+      ) : (
+        <div style={{ display: 'grid', gap: 'var(--space-3)' }}>
+          {quizzes.map((item) => (
+            <QuizCard key={item.id} item={item} />
           ))}
         </div>
       )}

@@ -61,6 +61,7 @@ export class AssessmentItemsService {
         weight: dto.weight,
         maxMarks: dto.maxMarks,
         dueAt: dto.dueAt ? new Date(dto.dueAt) : undefined,
+        durationMinutes: dto.durationMinutes,
       },
     });
   }

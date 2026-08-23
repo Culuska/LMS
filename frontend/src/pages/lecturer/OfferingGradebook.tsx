@@ -1,5 +1,5 @@
 import { Fragment, useCallback, useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import { api, ApiError, downloadResource } from '../../api/client';
 import { useAuth } from '../../auth/useAuth';
 import type { AssessmentItem, AssessmentType, CourseResult, Mark, RosterEntry, Submission } from '../../types/domain';
@@ -29,7 +29,14 @@ export function OfferingGradebook() {
   const [marks, setMarks] = useState<Record<string, Record<string, string>>>({});
   const [error, setError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
-  const [newItem, setNewItem] = useState({ type: 'ASSIGNMENT' as AssessmentType, title: '', weight: '', maxMarks: '' });
+  const [newItem, setNewItem] = useState({
+    type: 'ASSIGNMENT' as AssessmentType,
+    title: '',
+    weight: '',
+    maxMarks: '',
+    dueAt: '',
+    durationMinutes: '',
+  });
   const [busy, setBusy] = useState<string | null>(null);
   const [expandedItemId, setExpandedItemId] = useState<string | null>(null);
   const [submissions, setSubmissions] = useState<Record<string, Submission[]>>({});
@@ -92,8 +99,11 @@ export function OfferingGradebook() {
         title: newItem.title,
         weight: Number(newItem.weight),
         maxMarks: Number(newItem.maxMarks),
+        dueAt: newItem.dueAt ? new Date(newItem.dueAt).toISOString() : undefined,
+        durationMinutes:
+          newItem.type === 'QUIZ' && newItem.durationMinutes ? Number(newItem.durationMinutes) : undefined,
       });
-      setNewItem({ type: 'ASSIGNMENT', title: '', weight: '', maxMarks: '' });
+      setNewItem({ type: 'ASSIGNMENT', title: '', weight: '', maxMarks: '', dueAt: '', durationMinutes: '' });
       load();
     } catch (err) {
       setActionError(err instanceof ApiError ? err.message : 'Failed to create assessment item');
@@ -176,9 +186,15 @@ export function OfferingGradebook() {
                       <td className="num">{i.weight}</td>
                       <td className="num">{i.maxMarks}</td>
                       <td className="action-cell">
-                        <button className="btn btn-secondary btn-sm" onClick={() => void toggleSubmissions(i.id)}>
-                          {expandedItemId === i.id ? 'Hide submissions' : 'View submissions'}
-                        </button>
+                        {i.type === 'QUIZ' ? (
+                          <Link to={`/my-offerings/${offeringId}/quizzes/${i.id}`} className="btn btn-secondary btn-sm">
+                            Manage quiz
+                          </Link>
+                        ) : (
+                          <button className="btn btn-secondary btn-sm" onClick={() => void toggleSubmissions(i.id)}>
+                            {expandedItemId === i.id ? 'Hide submissions' : 'View submissions'}
+                          </button>
+                        )}
                       </td>
                     </tr>
                     {expandedItemId === i.id && (
@@ -273,6 +289,26 @@ export function OfferingGradebook() {
                 required
               />
             </label>
+            <label>
+              Deadline (optional)
+              <input
+                type="datetime-local"
+                value={newItem.dueAt}
+                onChange={(e) => setNewItem({ ...newItem, dueAt: e.target.value })}
+              />
+            </label>
+            {newItem.type === 'QUIZ' && (
+              <label>
+                Duration, minutes (optional)
+                <input
+                  placeholder="e.g. 20"
+                  type="number"
+                  min={1}
+                  value={newItem.durationMinutes}
+                  onChange={(e) => setNewItem({ ...newItem, durationMinutes: e.target.value })}
+                />
+              </label>
+            )}
             <button type="submit" className="btn btn-primary">
               Add item
             </button>
