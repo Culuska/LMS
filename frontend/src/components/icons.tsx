@@ -218,3 +218,12 @@ export function IconVideo(props: IconProps) {
     </svg>
   );
 }
+
+export function IconMessage(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M4 5.5h16v10.5a1 1 0 0 1-1 1H9l-4 3.3v-3.3h-1a1 1 0 0 1-1-1z" />
+      <path d="M8 9.5h8M8 12.7h5" />
+    </svg>
+  );
+}

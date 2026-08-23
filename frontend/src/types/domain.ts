@@ -113,6 +113,27 @@ export interface AttendanceSession {
   records: AttendanceRecord[];
 }
 
+export interface ForumAuthor {
+  firstName: string;
+  lastName: string;
+}
+
+export interface ForumReply {
+  id: string;
+  body: string;
+  createdAt: string;
+  author: ForumAuthor | null;
+}
+
+export interface ForumPost {
+  id: string;
+  title: string;
+  body: string;
+  createdAt: string;
+  author: ForumAuthor | null;
+  replies: ForumReply[];
+}
+
 export interface Notification {
   id: string;
   title: string;

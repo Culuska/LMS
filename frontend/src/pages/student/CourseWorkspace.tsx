@@ -11,6 +11,7 @@ import type {
 } from '../../types/domain';
 import { PageHeader } from '../../components/PageHeader';
 import { EmptyState, Loading } from '../../components/StateViews';
+import { ForumSection } from '../../components/ForumSection';
 import { IconBook, IconCheckCircle, IconClipboard, IconFile, IconUpload, IconVideo } from '../../components/icons';
 
 const ATTENDANCE_CHIP: Record<string, string> = {
@@ -304,6 +305,9 @@ export function CourseWorkspace() {
           ))}
         </div>
       )}
+
+      <h2 style={{ margin: 'var(--space-6) 0 var(--space-3)' }}>Discussion Forum</h2>
+      <ForumSection offeringId={offeringId} />
     </div>
   );
 }

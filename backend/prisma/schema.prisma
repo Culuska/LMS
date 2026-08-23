@@ -293,6 +293,7 @@ model CourseOffering {
   attendanceSessions AttendanceSession[]
   assessmentItems    AssessmentItem[]
   announcements      Announcement[]
+  forumPosts         ForumPost[]
 
   @@unique([courseId, semesterId, lecturerId])
   @@index([semesterId])
@@ -483,6 +484,37 @@ model Announcement {
   courseOffering CourseOffering? @relation(fields: [courseOfferingId], references: [id])
 
   @@map("announcements")
+}
+
+/// A simple per-course discussion thread — one flat level of replies, not nested
+/// comments, and no likes/reactions/mentions. Deliberately not social-media-style,
+/// per the LMS simplification spec: a place to ask/answer course questions, nothing more.
+model ForumPost {
+  id               String   @id @default(uuid())
+  courseOfferingId String
+  authorId         String
+  title            String
+  body             String
+  createdAt        DateTime @default(now())
+
+  courseOffering CourseOffering @relation(fields: [courseOfferingId], references: [id])
+  replies        ForumReply[]
+
+  @@index([courseOfferingId])
+  @@map("forum_posts")
+}
+
+model ForumReply {
+  id        String   @id @default(uuid())
+  postId    String
+  authorId  String
+  body      String
+  createdAt DateTime @default(now())
+
+  post ForumPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@index([postId])
+  @@map("forum_replies")
 }
 
 // ─────────────────────────────────────────────────────────────────────────

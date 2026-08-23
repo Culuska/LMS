@@ -230,6 +230,9 @@ export function MyOfferings() {
                       <Link to={`/my-offerings/${o.id}/attendance`} className="btn btn-secondary btn-sm">
                         Attendance
                       </Link>
+                      <Link to={`/my-offerings/${o.id}/forum`} className="btn btn-secondary btn-sm">
+                        Forum
+                      </Link>
                       <Link to={`/my-offerings/${o.id}`} className="btn btn-secondary btn-sm">
                         Gradebook
                       </Link>
