@@ -99,6 +99,20 @@ export interface Submission {
   };
 }
 
+export type AttendanceStatus = 'PRESENT' | 'ABSENT' | 'LATE' | 'EXCUSED';
+
+export interface AttendanceRecord {
+  id: string;
+  studentId: string;
+  status: AttendanceStatus;
+}
+
+export interface AttendanceSession {
+  id: string;
+  sessionDate: string;
+  records: AttendanceRecord[];
+}
+
 export interface Notification {
   id: string;
   title: string;

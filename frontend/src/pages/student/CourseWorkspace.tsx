@@ -1,10 +1,24 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { api, ApiError, downloadResource, uploadFileResource } from '../../api/client';
-import type { AssessmentItem, CourseContentItem, Resource, Submission } from '../../types/domain';
+import { useAuth } from '../../auth/useAuth';
+import type {
+  AssessmentItem,
+  AttendanceSession,
+  CourseContentItem,
+  Resource,
+  Submission,
+} from '../../types/domain';
 import { PageHeader } from '../../components/PageHeader';
 import { EmptyState, Loading } from '../../components/StateViews';
-import { IconBook, IconClipboard, IconFile, IconUpload, IconVideo } from '../../components/icons';
+import { IconBook, IconCheckCircle, IconClipboard, IconFile, IconUpload, IconVideo } from '../../components/icons';
+
+const ATTENDANCE_CHIP: Record<string, string> = {
+  PRESENT: 'chip-ok',
+  LATE: 'chip-warn',
+  EXCUSED: 'chip-neutral',
+  ABSENT: 'chip-danger',
+};
 
 function formatDueAt(dueAt: string | null): string {
   if (!dueAt) return 'No deadline set';
@@ -156,8 +170,11 @@ function AssignmentCard({ item }: { item: AssessmentItem }) {
 
 export function CourseWorkspace() {
   const { offeringId } = useParams<{ offeringId: string }>();
+  const { user } = useAuth();
   const [content, setContent] = useState<CourseContentItem[] | null>(null);
   const [assignments, setAssignments] = useState<AssessmentItem[] | null>(null);
+  const [sessions, setSessions] = useState<AttendanceSession[] | null>(null);
+  const [attendancePercentage, setAttendancePercentage] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -165,15 +182,30 @@ export function CourseWorkspace() {
     Promise.all([
       api.get<CourseContentItem[]>(`/course-offerings/${offeringId}/content`),
       api.get<AssessmentItem[]>(`/course-offerings/${offeringId}/assessment-items`),
+      api.get<AttendanceSession[]>(`/course-offerings/${offeringId}/attendance-sessions`),
     ])
-      .then(([contentData, itemsData]) => {
+      .then(([contentData, itemsData, sessionData]) => {
         setContent(contentData);
         setAssignments(itemsData.filter((i) => i.type === 'ASSIGNMENT'));
+        setSessions(sessionData);
       })
       .catch((err) => setError(err instanceof ApiError ? err.message : 'Failed to load course'));
-  }, [offeringId]);
+
+    if (user?.studentId) {
+      api
+        .get<{ percentage: number }>(
+          `/course-offerings/${offeringId}/attendance-sessions/percentage?studentId=${user.studentId}`,
+        )
+        .then((r) => setAttendancePercentage(r.percentage))
+        .catch(() => setAttendancePercentage(null));
+    }
+  }, [offeringId, user?.studentId]);
 
   if (!offeringId) return <p className="error" role="alert">Missing offering id.</p>;
+
+  const mySessions = (sessions ?? [])
+    .map((s) => ({ ...s, mine: s.records.find((r) => r.studentId === user?.studentId) }))
+    .filter((s) => s.mine);
 
   return (
     <div>
@@ -221,6 +253,42 @@ export function CourseWorkspace() {
               )}
             </div>
           ))}
+        </div>
+      )}
+
+      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', margin: 'var(--space-6) 0 var(--space-3)' }}>
+        <h2>Attendance</h2>
+        {attendancePercentage !== null && (
+          <span className={`chip ${attendancePercentage >= 75 ? 'chip-ok' : 'chip-warn'}`}>
+            <IconCheckCircle style={{ width: '0.9rem', height: '0.9rem', marginRight: '0.3rem' }} />
+            {attendancePercentage}% present
+          </span>
+        )}
+      </div>
+      {!sessions ? (
+        <Loading label="Loading attendance…" />
+      ) : mySessions.length === 0 ? (
+        <EmptyState icon={<IconClipboard />} title="No attendance recorded yet" description="Your lecturer hasn't taken attendance yet." />
+      ) : (
+        <div className="table-scroll">
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {mySessions.map((s) => (
+                <tr key={s.id}>
+                  <td>{new Date(s.sessionDate).toLocaleDateString(undefined, { dateStyle: 'medium' })}</td>
+                  <td>
+                    <span className={`chip ${ATTENDANCE_CHIP[s.mine!.status]}`}>{s.mine!.status.toLowerCase()}</span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
 
