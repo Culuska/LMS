@@ -1,11 +1,11 @@
-import { useCallback, useEffect, useState } from 'react';
+import { Fragment, useCallback, useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { api, ApiError } from '../../api/client';
+import { api, ApiError, downloadResource } from '../../api/client';
 import { useAuth } from '../../auth/useAuth';
-import type { AssessmentItem, AssessmentType, CourseResult, Mark, RosterEntry } from '../../types/domain';
+import type { AssessmentItem, AssessmentType, CourseResult, Mark, RosterEntry, Submission } from '../../types/domain';
 import { PageHeader } from '../../components/PageHeader';
 import { EmptyState, Loading } from '../../components/StateViews';
-import { IconUsers } from '../../components/icons';
+import { IconFile, IconUsers } from '../../components/icons';
 
 const ASSESSMENT_TYPES: AssessmentType[] = ['ASSIGNMENT', 'QUIZ', 'MIDTERM', 'FINAL', 'PRACTICAL'];
 
@@ -31,6 +31,8 @@ export function OfferingGradebook() {
   const [actionError, setActionError] = useState<string | null>(null);
   const [newItem, setNewItem] = useState({ type: 'ASSIGNMENT' as AssessmentType, title: '', weight: '', maxMarks: '' });
   const [busy, setBusy] = useState<string | null>(null);
+  const [expandedItemId, setExpandedItemId] = useState<string | null>(null);
+  const [submissions, setSubmissions] = useState<Record<string, Submission[]>>({});
 
   const canApprove = user?.roles.some((r) =>
     ['EXAM_OFFICER', 'REGISTRAR', 'HEAD_OF_DEPARTMENT', 'DEAN', 'SUPER_ADMIN'].includes(r),
@@ -98,6 +100,22 @@ export function OfferingGradebook() {
     }
   };
 
+  const toggleSubmissions = async (itemId: string) => {
+    if (expandedItemId === itemId) {
+      setExpandedItemId(null);
+      return;
+    }
+    setExpandedItemId(itemId);
+    if (!submissions[itemId]) {
+      try {
+        const data = await api.get<Submission[]>(`/assessment-items/${itemId}/submissions`);
+        setSubmissions((prev) => ({ ...prev, [itemId]: data }));
+      } catch (err) {
+        setActionError(err instanceof ApiError ? err.message : 'Failed to load submissions');
+      }
+    }
+  };
+
   const runAction = async (
     action: 'compute' | 'submit' | 'approve' | 'publish',
     registrationId: string,
@@ -146,16 +164,66 @@ export function OfferingGradebook() {
                   <th>Title</th>
                   <th className="num">Weight %</th>
                   <th className="num">Max marks</th>
+                  <th></th>
                 </tr>
               </thead>
               <tbody>
                 {items.map((i) => (
-                  <tr key={i.id}>
-                    <td>{i.type}</td>
-                    <td>{i.title}</td>
-                    <td className="num">{i.weight}</td>
-                    <td className="num">{i.maxMarks}</td>
-                  </tr>
+                  <Fragment key={i.id}>
+                    <tr>
+                      <td>{i.type}</td>
+                      <td>{i.title}</td>
+                      <td className="num">{i.weight}</td>
+                      <td className="num">{i.maxMarks}</td>
+                      <td className="action-cell">
+                        <button className="btn btn-secondary btn-sm" onClick={() => void toggleSubmissions(i.id)}>
+                          {expandedItemId === i.id ? 'Hide submissions' : 'View submissions'}
+                        </button>
+                      </td>
+                    </tr>
+                    {expandedItemId === i.id && (
+                      <tr>
+                        <td colSpan={5} style={{ background: 'var(--color-surface-sunken)' }}>
+                          {!submissions[i.id] ? (
+                            <Loading label="Loading submissions…" />
+                          ) : submissions[i.id].length === 0 ? (
+                            <p style={{ padding: 'var(--space-2) 0' }}>No submissions yet for this item.</p>
+                          ) : (
+                            <ul style={{ listStyle: 'none', margin: 0, padding: 'var(--space-2) 0', display: 'grid', gap: 'var(--space-3)' }}>
+                              {submissions[i.id].map((s) => (
+                                <li key={s.id}>
+                                  <p style={{ fontWeight: 500 }}>
+                                    {s.student?.user.firstName} {s.student?.user.lastName}{' '}
+                                    <span className="mono" style={{ color: 'var(--color-ink-faint)', fontWeight: 400 }}>
+                                      ({s.student?.studentNumber})
+                                    </span>{' '}
+                                    {s.isLate && <span className="chip chip-warn">late</span>}
+                                  </p>
+                                  {s.content && <p>{s.content}</p>}
+                                  {s.resources.length > 0 && (
+                                    <ul style={{ listStyle: 'none', margin: 'var(--space-1) 0 0', padding: 0, display: 'grid', gap: 'var(--space-1)' }}>
+                                      {s.resources.map((r) => (
+                                        <li key={r.id} style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+                                          <IconFile style={{ width: '1rem', height: '1rem', flexShrink: 0 }} />
+                                          <button
+                                            type="button"
+                                            onClick={() => void downloadResource(r.id)}
+                                            style={{ background: 'none', border: 'none', padding: 0, color: 'var(--color-brand-strong)', cursor: 'pointer', font: 'inherit', textDecoration: 'underline' }}
+                                          >
+                                            {r.fileName}
+                                          </button>
+                                        </li>
+                                      ))}
+                                    </ul>
+                                  )}
+                                </li>
+                              ))}
+                            </ul>
+                          )}
+                        </td>
+                      </tr>
+                    )}
+                  </Fragment>
                 ))}
               </tbody>
             </table>

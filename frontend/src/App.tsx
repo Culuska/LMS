@@ -3,13 +3,16 @@ import { AuthProvider } from './auth/AuthContext';
 import { ProtectedRoute } from './auth/ProtectedRoute';
 import { AppLayout } from './layout/AppLayout';
 import { Login } from './pages/Login';
+import { Register } from './pages/Register';
 import { ChangePassword } from './pages/ChangePassword';
 import { Dashboard } from './pages/Dashboard';
 import { Notifications } from './pages/Notifications';
 import { MyCourses } from './pages/student/MyCourses';
+import { CourseWorkspace } from './pages/student/CourseWorkspace';
 import { Transcript } from './pages/student/Transcript';
 import { MyOfferings } from './pages/lecturer/MyOfferings';
 import { OfferingGradebook } from './pages/lecturer/OfferingGradebook';
+import { OfferingContent } from './pages/lecturer/OfferingContent';
 import { AcademicStructure } from './pages/admin/AcademicStructure';
 import { Applications } from './pages/admin/Applications';
 import { UsersAndRoles } from './pages/admin/UsersAndRoles';
@@ -20,6 +23,7 @@ function App() {
     <AuthProvider>
       <Routes>
         <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
         {/* Outside AppLayout deliberately — AppLayout redirects here whenever
             mustChangePassword is true, so this route can't itself be behind that guard. */}
         <Route
@@ -46,9 +50,11 @@ function App() {
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/notifications" element={<Notifications />} />
           <Route path="/my-courses" element={<MyCourses />} />
+          <Route path="/my-courses/:offeringId" element={<CourseWorkspace />} />
           <Route path="/transcript" element={<Transcript />} />
           <Route path="/my-offerings" element={<MyOfferings />} />
           <Route path="/my-offerings/:offeringId" element={<OfferingGradebook />} />
+          <Route path="/my-offerings/:offeringId/content" element={<OfferingContent />} />
           <Route path="/admin/academic-structure" element={<AcademicStructure />} />
           <Route path="/admin/applications" element={<Applications />} />
           <Route path="/admin/users" element={<UsersAndRoles />} />

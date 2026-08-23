@@ -190,3 +190,31 @@ export function IconInbox(props: IconProps) {
     </svg>
   );
 }
+
+export function IconFile(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M6 3.6h8l4 4v12.3a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 4 20.4V5.1A1.5 1.5 0 0 1 5.5 3.6z" />
+      <path d="M14 3.6v4h4" />
+    </svg>
+  );
+}
+
+export function IconUpload(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M12 15.5V4.5" />
+      <path d="M8 8.3 12 4.2l4 4.1" />
+      <path d="M4.5 15v3.5A1.5 1.5 0 0 0 6 20h12a1.5 1.5 0 0 0 1.5-1.5V15" />
+    </svg>
+  );
+}
+
+export function IconVideo(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <rect x="3.5" y="6" width="12" height="12" rx="1.5" />
+      <path d="M15.5 10.5 20 8v8l-4.5-2.5" />
+    </svg>
+  );
+}

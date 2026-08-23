@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 import { api } from '../api/client';
 import { AuthContext } from './context';
+import type { RegisterInput } from './context';
 import type { AuthenticatedUser, LoginResponse } from './types';
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -32,6 +33,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(result.user);
   }, []);
 
+  const register = useCallback(async (input: RegisterInput) => {
+    const result = await api.post<LoginResponse>('/auth/register', input);
+    localStorage.setItem('accessToken', result.accessToken);
+    setUser(result.user);
+  }, []);
+
   const logout = useCallback(() => {
     localStorage.removeItem('accessToken');
     setUser(null);
@@ -42,8 +49,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const value = useMemo(
-    () => ({ user, isLoading, login, logout, clearMustChangePassword }),
-    [user, isLoading, login, logout, clearMustChangePassword],
+    () => ({ user, isLoading, login, register, logout, clearMustChangePassword }),
+    [user, isLoading, login, register, logout, clearMustChangePassword],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

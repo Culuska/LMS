@@ -59,3 +59,37 @@ export const api = {
     request<T>(path, { method: 'PUT', body: body ? JSON.stringify(body) : undefined }),
   delete: <T>(path: string) => request<T>(path, { method: 'DELETE' }),
 };
+
+/**
+ * Two-step upload: `requestPath` registers the file's metadata with our backend and
+ * gets back a short-lived presigned URL, then the raw bytes go straight to Cloudflare
+ * R2 — never through our own API — via a plain unauthenticated PUT to that URL. See
+ * backend/src/storage/storage.service.ts for the other half of this.
+ */
+export async function uploadFileResource<TResource>(
+  requestPath: string,
+  file: File,
+): Promise<TResource> {
+  const { resource, uploadUrl } = await api.post<{ resource: TResource; uploadUrl: string }>(
+    requestPath,
+    { fileName: file.name, contentType: file.type, sizeBytes: file.size },
+  );
+
+  const uploadResponse = await fetch(uploadUrl, {
+    method: 'PUT',
+    headers: { 'Content-Type': file.type },
+    body: file,
+  });
+  if (!uploadResponse.ok) {
+    throw new ApiError(uploadResponse.status, 'The file itself failed to upload — please try again.');
+  }
+
+  return resource;
+}
+
+/** A resource's download link is also presigned and short-lived — fetched fresh each
+ * click rather than cached, so it can't go stale in a long-open tab. */
+export async function downloadResource(resourceId: string): Promise<void> {
+  const { url } = await api.get<{ url: string; fileName: string }>(`/resources/${resourceId}/download`);
+  window.open(url, '_blank', 'noopener,noreferrer');
+}

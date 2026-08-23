@@ -58,6 +58,7 @@ export interface AssessmentItem {
   title: string;
   weight: string;
   maxMarks: string;
+  dueAt: string | null;
 }
 
 export interface Mark {
@@ -65,6 +66,37 @@ export interface Mark {
   assessmentItemId: string;
   studentId: string;
   score: string;
+}
+
+export interface Resource {
+  id: string;
+  fileName: string;
+  contentType: string;
+  sizeBytes: number;
+  createdAt: string;
+}
+
+export interface CourseContentItem {
+  id: string;
+  title: string;
+  body: string | null;
+  videoUrl: string | null;
+  parentId: string | null;
+  orderIndex: number;
+  resources: Resource[];
+}
+
+export interface Submission {
+  id: string;
+  content: string | null;
+  isLate: boolean;
+  submittedAt: string;
+  resources: Resource[];
+  mark?: Mark | null;
+  student?: {
+    studentNumber: string;
+    user: { firstName: string; lastName: string; email: string };
+  };
 }
 
 export interface Notification {
