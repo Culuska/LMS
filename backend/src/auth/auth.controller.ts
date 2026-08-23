@@ -9,6 +9,7 @@ import {
 import { Throttle } from '@nestjs/throttler';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
+import { RegisterDto } from './dto/register.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
@@ -34,6 +35,16 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   login(@Body() dto: LoginDto) {
     return this.authService.login(dto.email, dto.password);
+  }
+
+  // Same rate-limit reasoning as login — an unauthenticated endpoint that creates
+  // accounts is exactly the kind of thing worth throttling per IP.
+  @Public()
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  @Post('register')
+  @HttpCode(HttpStatus.CREATED)
+  register(@Body() dto: RegisterDto) {
+    return this.authService.register(dto);
   }
 
   /** Confirms who the caller is and what roles the current token carries. */

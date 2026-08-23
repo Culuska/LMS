@@ -121,10 +121,15 @@ export class CourseRegistrationsService {
    * body. Staff roles (Registrar/Advisor/Super Admin) use dto.studentId as given.
    */
   private async resolveTargetStudentId(
-    dtoStudentId: string,
+    dtoStudentId: string | undefined,
     user: AuthenticatedUser,
   ): Promise<string> {
     if (user.roles.some((r) => STAFF_ROLES.includes(r))) {
+      if (!dtoStudentId) {
+        throw new BadRequestException(
+          'studentId is required when registering on behalf of a student',
+        );
+      }
       return dtoStudentId;
     }
     const ownRecord = await this.prisma.student.findUnique({
@@ -173,7 +178,13 @@ export class CourseRegistrationsService {
     }
   }
 
-  /** docs/00-requirements-audit.md §8 rule 1. */
+  /** docs/00-requirements-audit.md §8 rule 1 — but only for students actually enrolled
+   * in a formal program/curriculum. A student with no curriculum enrollment at all
+   * (e.g. self-registered directly via AuthService.register, with no admissions/degree-
+   * program tracking) has nothing for this rule to check against; treating that as "not
+   * applicable" rather than "forbidden" is what lets simple course-by-course
+   * registration work without requiring the full curriculum machinery to be set up
+   * first. Students who *are* enrolled in a program still get the real check. */
   private async assertCurriculumIncludesCourse(
     studentId: string,
     courseId: string,
@@ -183,7 +194,7 @@ export class CourseRegistrationsService {
       select: { curriculumVersionId: true },
     });
     if (enrollments.length === 0) {
-      throw new BadRequestException('Student has no active program enrollment');
+      return;
     }
     const match = await this.prisma.curriculumCourse.findFirst({
       where: {

@@ -1,13 +1,17 @@
 import {
   BadRequestException,
+  ConflictException,
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import { RoleName } from '@prisma/client';
+import { randomUUID } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { EmailService } from '../email/email.service';
 import { comparePassword, hashPassword } from './password.util';
 import { generateResetToken, hashResetToken } from './token.util';
+import type { RegisterDto } from './dto/register.dto';
 import type { AuthenticatedUser } from './strategies/jwt.strategy';
 
 export interface LoginResult {
@@ -24,6 +28,54 @@ export class AuthService {
     private readonly jwtService: JwtService,
     private readonly emailService: EmailService,
   ) {}
+
+  /** Public self-registration for students, distinct from UsersService.createStudent
+   * (the staff-initiated flow, which generates and emails a temporary password). Here
+   * the student sets their own password and is logged straight in — nothing to change
+   * on first login, matching how signing up for any ordinary web app works. */
+  async register(dto: RegisterDto): Promise<LoginResult> {
+    const existing = await this.prisma.user.findUnique({
+      where: { email: dto.email.toLowerCase() },
+    });
+    if (existing) {
+      throw new ConflictException('An account with this email already exists');
+    }
+
+    const studentNumber =
+      dto.studentNumber?.trim() ||
+      `STU-${randomUUID().slice(0, 8).toUpperCase()}`;
+    const existingStudentNumber = dto.studentNumber
+      ? await this.prisma.student.findUnique({ where: { studentNumber } })
+      : null;
+    if (existingStudentNumber) {
+      throw new ConflictException(
+        `Student number "${studentNumber}" is already in use`,
+      );
+    }
+
+    const passwordHash = await hashPassword(dto.password);
+
+    const user = await this.prisma.$transaction(async (tx) => {
+      const created = await tx.user.create({
+        data: {
+          email: dto.email.toLowerCase(),
+          passwordHash,
+          firstName: dto.firstName,
+          lastName: dto.lastName,
+          mustChangePassword: false,
+        },
+      });
+      await tx.userRole.create({
+        data: { userId: created.id, role: RoleName.STUDENT },
+      });
+      await tx.student.create({
+        data: { userId: created.id, studentNumber, dateOfBirth: null },
+      });
+      return created;
+    });
+
+    return this.login(user.email, dto.password);
+  }
 
   async login(email: string, password: string): Promise<LoginResult> {
     const user = await this.prisma.user.findUnique({

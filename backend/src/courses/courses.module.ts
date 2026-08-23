@@ -5,6 +5,7 @@ import { CourseOfferingsController } from './course-offerings.controller';
 import { CourseOfferingsService } from './course-offerings.service';
 import { CurriculumController } from './curriculum.controller';
 import { CurriculumService } from './curriculum.service';
+import { OfferingAccessService } from '../common/offering-access.service';
 
 @Module({
   controllers: [
@@ -12,7 +13,12 @@ import { CurriculumService } from './curriculum.service';
     CourseOfferingsController,
     CurriculumController,
   ],
-  providers: [CoursesService, CourseOfferingsService, CurriculumService],
+  providers: [
+    CoursesService,
+    CourseOfferingsService,
+    CurriculumService,
+    OfferingAccessService,
+  ],
   exports: [CoursesService, CourseOfferingsService, CurriculumService],
 })
 export class CoursesModule {}
